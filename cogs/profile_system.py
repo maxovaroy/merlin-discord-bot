@@ -299,6 +299,12 @@ async def cmdcheck(self, ctx):
     await ctx.send(f"📋 Available commands: {', '.join(commands_list)}")
 
 async def setup(bot):
-    from storage import DataStorage
-    storage = DataStorage()
-    await bot.add_cog(ProfileSystem(bot, storage))
+    try:
+        from storage import DataStorage
+        storage = DataStorage()
+        await bot.add_cog(ProfileSystem(bot, storage))
+        print("✅ ProfileSystem cog loaded successfully!")
+    except Exception as e:
+        print(f"❌ Failed to load ProfileSystem: {e}")
+        # Fallback without storage
+        await bot.add_cog(ProfileSystem(bot, None))
