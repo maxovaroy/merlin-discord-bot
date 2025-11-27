@@ -2,7 +2,7 @@ import os
 
 class Config:
     # Bot Settings
-    BOT_TOKEN = "bot_token"
+    BOT_TOKEN = os.getenv("BOT_TOKEN")
     PREFIX = "!"
     
     # Data files
@@ -78,4 +78,5 @@ class Config:
             raise ValueError("❌ BOT_TOKEN not set. Please set it in config.py")
         if not cls.PREFIX:
             raise ValueError("❌ PREFIX not set")
+
         return True
