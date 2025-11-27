@@ -32,67 +32,52 @@ class ProfileSystem(commands.Cog):
         empty = length - filled
         return '█' * filled + '░' * empty
 
-    def calculate_level(self, xp):
-        """Calculate level based on XP"""
-        base_xp = 100
-        multiplier = 1.5
-        level = 0
-        required_xp = 0
+@commands.command()
+async def profile(self, ctx, member: discord.Member = None):
+    """Display user profile with banner - DEBUG VERSION"""
+    try:
+        print(f"🔍 PROFILE COMMAND TRIGGERED: {ctx.author} -> {member}")
         
-        while xp >= required_xp:
-            level += 1
-            required_xp = base_xp * (multiplier ** (level - 1))
-        
-        # Adjust for current level
-        previous_xp = base_xp * (multiplier ** (level - 2)) if level > 1 else 0
-        current_xp = xp - previous_xp
-        current_required_xp = required_xp - previous_xp
-        
-        progress_percentage = min(100, int((current_xp / current_required_xp) * 100)) if current_required_xp > 0 else 100
-        
-        return {
-            'level': level - 1,
-            'current_xp': int(current_xp),
-            'required_xp': int(current_required_xp),
-            'progress_percentage': progress_percentage,
-            'total_xp': xp
-        }
-
-    @commands.command()
-    async def profile(self, ctx, member: discord.Member = None):
-        """Display user profile with banner"""
         if not self.storage:
             await ctx.send("❌ Storage system not available. Please contact bot administrator.")
             return
             
         target = member or ctx.author
+        print(f"🎯 Target user: {target}")
         
         # Get user profile data
         profile_data = self.storage.get_user_profile(target.id, ctx.guild.id)
+        print(f"📊 Profile data: {bool(profile_data)}")
         
         if not profile_data:
             await ctx.send("❌ Profile not found! Start chatting to create your profile.")
             return
         
         # Get banner information
-        banner_id = profile_data.get('banner', 'assassin')  # Default to assassin banner
+        banner_id = profile_data.get('banner', 'assassin')
+        print(f"🎨 Banner ID: {banner_id}")
         
         # Try to import banner system to get banner info
         try:
             # Get the banner cog instance
             banner_cog = self.bot.get_cog('BannerSystem')
+            print(f"🔧 Banner cog: {banner_cog}")
+            
             if banner_cog:
                 banner_info = banner_cog.available_banners.get(banner_id, banner_cog.available_banners['assassin'])
                 banner_name = banner_info['name']
                 banner_emoji = banner_info['emoji']
                 banner_color = banner_info.get('color', '#7289DA')
                 banner_url = banner_info.get('banner_url')
+                print(f"🎨 Banner info: {banner_name}")
             else:
                 banner_name = "Assassin"
                 banner_emoji = "🗡️"
                 banner_color = "#7289DA"
                 banner_url = None
-        except:
+                print("⚠️ Using default banner info")
+        except Exception as e:
+            print(f"❌ Banner error: {e}")
             banner_name = "Assassin"
             banner_emoji = "🗡️"
             banner_color = "#7289DA"
@@ -100,11 +85,15 @@ class ProfileSystem(commands.Cog):
         
         # Calculate level and progress
         total_xp = profile_data.get('xp', 0)
+        print(f"📈 Total XP: {total_xp}")
+        
         level_info = self.calculate_level(total_xp)
         current_level = level_info['level']
         current_xp = level_info['current_xp']
         required_xp = level_info['required_xp']
         progress_percentage = level_info['progress_percentage']
+        
+        print(f"🎯 Level: {current_level}, Progress: {progress_percentage}%")
         
         # Create progress bar
         progress_bar = self.create_progress_bar(progress_percentage)
@@ -120,6 +109,7 @@ class ProfileSystem(commands.Cog):
         # Add banner image if available
         if banner_url:
             embed.set_image(url=banner_url)
+            print("🖼️ Banner image set")
         
         # Add profile fields
         embed.add_field(
@@ -145,28 +135,19 @@ class ProfileSystem(commands.Cog):
             inline=False
         )
         
-        # Add achievements if available
-        try:
-            achievement_cog = self.bot.get_cog('AchievementSystem')
-            if achievement_cog:
-                user_achievements = self.storage.get_achievements(target.id, ctx.guild.id)
-                if user_achievements:
-                    completed = len([a for a in user_achievements if a.get('completed', False)])
-                    embed.add_field(
-                        name="🏆 Achievements",
-                        value=f"**{completed}/{len(user_achievements)}** completed",
-                        inline=True
-                    )
-        except:
-            pass
-        
         # Set thumbnail as user avatar
         embed.set_thumbnail(url=target.display_avatar.url)
         
         # Add footer with banner info
         embed.set_footer(text=f"Use !banners to see available banners | !setbanner to change")
         
+        print("✅ Sending profile embed...")
         await ctx.send(embed=embed)
+        print("✅ Profile sent successfully!")
+        
+    except Exception as e:
+        print(f"❌ PROFILE COMMAND ERROR: {e}")
+        await ctx.send(f"❌ Error displaying profile: {e}")
 
     @commands.command()
     async def setbio(self, ctx, *, bio: str = None):
@@ -306,13 +287,18 @@ class ProfileSystem(commands.Cog):
         await ctx.send("🔄 This command has been updated to `!giveallbanners`. Redirecting...")
         # This will be handled by banner system
 
+@commands.command()
+async def testcmd(self, ctx):
+    """Test if profile commands are working"""
+    await ctx.send("✅ Profile commands are working!")
+
+@commands.command() 
+async def cmdcheck(self, ctx):
+    """Check all registered commands"""
+    commands_list = [cmd.name for cmd in self.get_commands()]
+    await ctx.send(f"📋 Available commands: {', '.join(commands_list)}")
+
 async def setup(bot):
-    try:
-        from storage import DataStorage
-        storage = DataStorage()
-        await bot.add_cog(ProfileSystem(bot, storage))
-        print("✅ ProfileSystem cog loaded successfully!")
-    except Exception as e:
-        print(f"❌ Failed to load ProfileSystem: {e}")
-        # Fallback: add cog without storage
-        await bot.add_cog(ProfileSystem(bot, None))
+    from storage import DataStorage
+    storage = DataStorage()
+    await bot.add_cog(ProfileSystem(bot, storage))
