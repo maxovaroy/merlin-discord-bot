@@ -66,6 +66,7 @@ AUTO_REPLIES = {
 
 # ===== COG CONFIGURATION =====
 COGS = [
+    # EXISTING COGS
     "cogs.profile_system",
     "cogs.social_system", 
     "cogs.advanced_moderations",
@@ -74,11 +75,15 @@ COGS = [
     "cogs.utilities",
     "cogs.events",
     "cogs.auto_reply",
-    "cogs.name_troll"
+    "cogs.name_troll",
+    
+    # NEW PROFILE SYSTEM COGS
+    "cogs.banner_system",      # Banner management commands
+    "cogs.achievement_system"  # Achievements & badges system
 ]
 
 # ===== BOT METADATA =====
-OWNER_IDS = []  # Add your Discord ID for owner commands
+OWNER_IDS = [717689371293384766]  # Your Discord ID for owner commands
 DEBUG_MODE = False
 VERSION = "1.0.0"
 
@@ -88,6 +93,8 @@ SOCIAL_SYSTEM_ENABLED = True
 LEVELING_ENABLED = True
 MODERATION_ENABLED = True
 AUTO_REPLY_ENABLED = True
+BANNER_SYSTEM_ENABLED = True
+ACHIEVEMENT_SYSTEM_ENABLED = True
 
 # ===== VALIDATION =====
 def validate_config():
