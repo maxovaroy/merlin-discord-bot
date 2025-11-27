@@ -1,0 +1,136 @@
+{
+  "players": {
+    "717689371293384766": {
+      "user_id": 717689371293384766,
+      "civilization_name": "New Kingdom",
+      "population": 100,
+      "coins": 1000,
+      "food": 500,
+      "soldiers": 10,
+      "farmers": 30,
+      "workers": 30,
+      "tax_rate": 0.1,
+      "buildings": {
+        "house": 1,
+        "farm": 1,
+        "barrack": 1,
+        "market": 1,
+        "hospital": 0,
+        "wall": 0
+      },
+      "research": {
+        "agriculture": 0,
+        "military": 0,
+        "economy": 0,
+        "medicine": 0
+      },
+      "wall_strength": 0,
+      "last_daily": null,
+      "last_raid": null,
+      "last_research": null,
+      "task_progress": {
+        "messages": 8,
+        "invites": 0,
+        "activity": 0
+      },
+      "task_cooldowns": {
+        "messages": null,
+        "invites": null,
+        "activity": null
+      },
+      "total_messages": 8,
+      "total_invites": 0,
+      "total_voice_minutes": 0,
+      "raid_wins": 0,
+      "raid_losses": 0
+    },
+    "1237355589701472279": {
+      "user_id": 1237355589701472279,
+      "civilization_name": "New Kingdom",
+      "population": 100,
+      "coins": 1000,
+      "food": 500,
+      "soldiers": 10,
+      "farmers": 30,
+      "workers": 30,
+      "tax_rate": 0.1,
+      "buildings": {
+        "house": 1,
+        "farm": 1,
+        "barrack": 1,
+        "market": 1,
+        "hospital": 0,
+        "wall": 0
+      },
+      "research": {
+        "agriculture": 0,
+        "military": 0,
+        "economy": 0,
+        "medicine": 0
+      },
+      "wall_strength": 0,
+      "last_daily": null,
+      "last_raid": null,
+      "last_research": null,
+      "task_progress": {
+        "messages": 12,
+        "invites": 0,
+        "activity": 0
+      },
+      "task_cooldowns": {
+        "messages": null,
+        "invites": null,
+        "activity": null
+      },
+      "total_messages": 12,
+      "total_invites": 0,
+      "total_voice_minutes": 0,
+      "raid_wins": 0,
+      "raid_losses": 0
+    },
+    "1209165207784525837": {
+      "user_id": 1209165207784525837,
+      "civilization_name": "New Kingdom",
+      "population": 100,
+      "coins": 1000,
+      "food": 500,
+      "soldiers": 10,
+      "farmers": 30,
+      "workers": 30,
+      "tax_rate": 0.1,
+      "buildings": {
+        "house": 1,
+        "farm": 1,
+        "barrack": 1,
+        "market": 1,
+        "hospital": 0,
+        "wall": 0
+      },
+      "research": {
+        "agriculture": 0,
+        "military": 0,
+        "economy": 0,
+        "medicine": 0
+      },
+      "wall_strength": 0,
+      "last_daily": null,
+      "last_raid": null,
+      "last_research": null,
+      "task_progress": {
+        "messages": 11,
+        "invites": 0,
+        "activity": 0
+      },
+      "task_cooldowns": {
+        "messages": null,
+        "invites": null,
+        "activity": null
+      },
+      "total_messages": 11,
+      "total_invites": 0,
+      "total_voice_minutes": 0,
+      "raid_wins": 0,
+      "raid_losses": 0
+    }
+  }
+}

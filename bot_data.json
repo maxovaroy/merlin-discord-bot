@@ -1,0 +1,102 @@
+{
+  "muted_users": {},
+  "warnings": {},
+  "user_levels": {},
+  "auto_reply_mutes": {},
+  "marriages": {},
+  "children": {},
+  "friends": {},
+  "reputation": {},
+  "gifts": {},
+  "user_profiles": {
+    "935103159062396938": {
+      "717689371293384766": {
+        "bio": "No bio set yet...",
+        "title": "Newcomer",
+        "color": null,
+        "banner": "guardian",
+        "badges": [],
+        "profile_views": 2,
+        "created_at": "2025-11-27T09:23:28.263633",
+        "last_updated": "2025-11-27T09:23:28.263639"
+      }
+    }
+  },
+  "achievements": {},
+  "backgrounds": {
+    "935103159062396938": {
+      "717689371293384766": [
+        {
+          "id": "assassin",
+          "name": "Assassin",
+          "unlocked_at": "2025-11-27T09:23:39.214529"
+        },
+        {
+          "id": "aura_farmer",
+          "name": "Aura Farmer",
+          "unlocked_at": "2025-11-27T09:23:39.214545"
+        },
+        {
+          "id": "unholy",
+          "name": "Unholy",
+          "unlocked_at": "2025-11-27T09:23:39.214552"
+        },
+        {
+          "id": "guardian",
+          "name": "Guardian",
+          "unlocked_at": "2025-11-27T09:23:39.214557"
+        },
+        {
+          "id": "spartan",
+          "name": "Spartan",
+          "unlocked_at": "2025-11-27T09:23:39.214561"
+        },
+        {
+          "id": "berserker",
+          "name": "Berserker",
+          "unlocked_at": "2025-11-27T09:23:39.214565"
+        },
+        {
+          "id": "purple",
+          "name": "Royal Purple",
+          "unlocked_at": "2025-11-27T09:23:39.214570"
+        },
+        {
+          "id": "gold",
+          "name": "Golden",
+          "unlocked_at": "2025-11-27T09:23:39.214574"
+        },
+        {
+          "id": "rainbow",
+          "name": "Rainbow",
+          "unlocked_at": "2025-11-27T09:23:39.214578"
+        },
+        {
+          "id": "galaxy",
+          "name": "Galaxy",
+          "unlocked_at": "2025-11-27T09:23:39.214583"
+        },
+        {
+          "id": "space",
+          "name": "Deep Space",
+          "unlocked_at": "2025-11-27T09:23:39.214587"
+        },
+        {
+          "id": "fire",
+          "name": "Inferno",
+          "unlocked_at": "2025-11-27T09:23:39.214598"
+        },
+        {
+          "id": "ice",
+          "name": "Frozen",
+          "unlocked_at": "2025-11-27T09:23:39.214602"
+        },
+        {
+          "id": "neon",
+          "name": "Neon City",
+          "unlocked_at": "2025-11-27T09:23:39.214607"
+        }
+      ]
+    }
+  }
+}
