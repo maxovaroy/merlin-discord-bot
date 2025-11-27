@@ -1,12 +1,11 @@
 # config.py - Merlin Bot Configuration
 # Copyright (c) 2024 Merlin Discord Bot. All rights reserved.
 
-import os
+import os  # ADD THIS IMPORT AT THE TOP
 
 # ===== BOT CORE SETTINGS =====
-# Bot Token - USE ONE OF THESE METHODS:
-BOT_TOKEN = os.getenv("BOT_TOKEN")  # For environment variables
-# BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"  # TEMPORARY for Zampto deployment
+# Replace with your actual bot token
+BOT_TOKEN = "MTMxNTY2NDcwMjMxOTM2MjA2OA.G1Qy0x.3G5_vzYU4FBWle7np52MRsvlU7CgmDGGb5OjZo"
 
 PREFIX = "!"
 DATABASE_URL = "sqlite:///merlin_data.db"
@@ -99,10 +98,9 @@ ACHIEVEMENT_SYSTEM_ENABLED = True
 # ===== VALIDATION =====
 def validate_config():
     """Validate critical configuration"""
-    if not BOT_TOKEN or BOT_TOKEN == "YOUR_BOT_TOKEN_HERE":
+    if not BOT_TOKEN or BOT_TOKEN == "YOUR_ACTUAL_BOT_TOKEN_HERE":
         print("❌ WARNING: BOT_TOKEN not set properly")
-        print("   For local dev: Set BOT_TOKEN environment variable")
-        print("   For Zampto: Temporarily add token to config.py")
+        print("   Please replace 'YOUR_ACTUAL_BOT_TOKEN_HERE' with your real bot token")
         return False
     
     required_files = ["storage.py", "app.py"]
