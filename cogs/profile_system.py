@@ -77,31 +77,31 @@ class ProfileSystem(commands.Cog):
             },
             'russian ghost': {
                 'name': 'russian ghost', 
-                'emoji': '⚡', 
+                'emoji': '🩸', 
                 'rarity': 'rare',
                 'banner_url': 'https://i.postimg.cc/5y5fLbH4/1000240210.png',
-                'color': '#FFD700'
+                'color': '#FF08DF'
             },
-            'purple': {
-                'name': 'Royal Purple', 
-                'emoji': '🟣', 
+            'baddie': {
+                'name': 'baddie', 
+                'emoji': '😈', 
                 'rarity': 'uncommon',
-                'banner_url': 'https://i.imgur.com/TVKVqmS.png',
-                'color': '#8A2BE2'
+                'banner_url': 'https://i.postimg.cc/fyR8jvyZ/1000240227.png',
+                'color': '#C7C7C7'
             },
-            'gold': {
-                'name': 'Golden', 
-                'emoji': '🟡', 
-                'rarity': 'rare',
-                'banner_url': 'https://i.imgur.com/6Q0cX4l.png',
-                'color': '#FFD700'
+            'techno': {
+                'name': 'techno blade', 
+                'emoji': '💘', 
+                'rarity': 'legendary',
+                'banner_url': 'https://i.postimg.cc/QdGpjbDF/1000240218.png',
+                'color': '#C20A0A'
             },
-            'rainbow': {
-                'name': 'Rainbow', 
-                'emoji': '🌈', 
-                'rarity': 'epic',
-                'banner_url': 'https://i.imgur.com/5Q1dY5m.png',
-                'color': '#FF6B6B'
+            'deadpool': {
+                'name': 'deadpool', 
+                'emoji': '♦', 
+                'rarity': 'common',
+                'banner_url': 'https://i.postimg.cc/BnRZrYGv/1000240221.png',
+                'color': '#C20A0A'
             },
             'galaxy': {
                 'name': 'Galaxy', 
@@ -1027,4 +1027,5 @@ class ProfileSystem(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(ProfileSystem(bot))
+
 
