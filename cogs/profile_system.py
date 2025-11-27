@@ -74,30 +74,30 @@ class ProfileSystem(commands.Cog):
                 'banner_url': 'https://i.postimg.cc/fbTvKPtF/1000240134.png',
                 'color': '#FFD700'
             },
-            'russian ghost': {
-                'name': 'russian ghost', 
+            'russian_ghost': {
+                'name': 'Russian Ghost', 
                 'emoji': '🩸', 
                 'rarity': 'rare',
                 'banner_url': 'https://i.postimg.cc/5y5fLbH4/1000240210.png',
                 'color': '#FF08DF'
             },
             'baddie': {
-                'name': 'baddie', 
+                'name': 'Baddie', 
                 'emoji': '😈', 
                 'rarity': 'uncommon',
                 'banner_url': 'https://i.postimg.cc/fyR8jvyZ/1000240227.png',
                 'color': '#C7C7C7'
             },
             'techno': {
-                'name': 'techno blade', 
+                'name': 'Techno Blade', 
                 'emoji': '💘', 
                 'rarity': 'legendary',
                 'banner_url': 'https://i.postimg.cc/QdGpjbDF/1000240218.png',
                 'color': '#C20A0A'
             },
             'deadpool': {
-                'name': 'deadpool', 
-                'emoji': '♦', 
+                'name': 'Deadpool', 
+                'emoji': '♦️', 
                 'rarity': 'common',
                 'banner_url': 'https://i.postimg.cc/BnRZrYGv/1000240221.png',
                 'color': '#C20A0A'
@@ -236,6 +236,28 @@ class ProfileSystem(commands.Cog):
         empty = length - filled
         return '█' * filled + '░' * empty
 
+    def find_banner_by_name(self, banner_name):
+        """Find banner by name (case-insensitive and flexible matching)"""
+        banner_name_lower = banner_name.lower().strip()
+        
+        # Exact match first
+        for banner_id, banner_info in self.available_banners.items():
+            if banner_id.lower() == banner_name_lower:
+                return banner_id, banner_info
+        
+        # Flexible name matching
+        for banner_id, banner_info in self.available_banners.items():
+            if banner_info['name'].lower() == banner_name_lower:
+                return banner_id, banner_info
+            if banner_name_lower in banner_info['name'].lower():
+                return banner_id, banner_info
+            if banner_info['name'].lower().replace(' ', '_') == banner_name_lower:
+                return banner_id, banner_info
+            if banner_name_lower.replace(' ', '_') == banner_id:
+                return banner_id, banner_info
+        
+        return None, None
+
     @commands.command()
     async def profile(self, ctx, member: discord.Member = None):
         """View your enhanced Koya-style profile card"""
@@ -276,7 +298,7 @@ class ProfileSystem(commands.Cog):
         
         # Calculate XP for next level
         xp_needed = level * 100
-        xp_progress = min((xp / xp_needed) * 100, 100)
+        xp_progress = min((xp / xp_needed) * 100, 100) if xp_needed > 0 else 0
         
         # Get current banner info
         current_banner_id = profile_data.get('banner', 'assassin')
@@ -299,10 +321,10 @@ class ProfileSystem(commands.Cog):
         embed.add_field(
             name="🎯 Profile Info",
             value=(
-                f"**Title:** {profile_data['title']}\n"
+                f"**Title:** {profile_data.get('title', 'No title set')}\n"
                 f"**Level:** {level} • **XP:** {xp}/{xp_needed}\n"
                 f"**Banner:** {banner_info['emoji']} {banner_info['name']}\n"
-                f"**Bio:** {profile_data['bio']}"
+                f"**Bio:** {profile_data.get('bio', 'No bio set')}"
             ),
             inline=False
         )
@@ -312,7 +334,7 @@ class ProfileSystem(commands.Cog):
             name="📊 Statistics",
             value=(
                 f"⭐ **Reputation:** {rep_data}\n"
-                f"👀 **Profile Views:** {profile_data['profile_views']}\n"
+                f"👀 **Profile Views:** {profile_data.get('profile_views', 0)}\n"
                 f"👥 **Friends:** {friends_count}\n"
                 f"🎁 **Gifts Sent:** {gifts_data}"
             ),
@@ -366,14 +388,8 @@ class ProfileSystem(commands.Cog):
             await self.profile(ctx)
             return
             
-        # Find banner by name
-        banner_id = None
-        banner_info = None
-        for bid, b_data in self.available_banners.items():
-            if b_data['name'].lower() == banner_name.lower():
-                banner_id = bid
-                banner_info = b_data
-                break
+        # Find banner by name using our improved function
+        banner_id, banner_info = self.find_banner_by_name(banner_name)
         
         if not banner_id:
             await ctx.send("❌ Banner not found! Use `!banners` to see available options.")
@@ -475,7 +491,7 @@ class ProfileSystem(commands.Cog):
 
     @commands.command()
     async def banners(self, ctx):
-        """View available banners"""
+        """View available banners with improved display"""
         if not self.storage:
             await ctx.send("❌ Storage system not available. Please contact bot administrator.")
             return
@@ -495,10 +511,27 @@ class ProfileSystem(commands.Cog):
             'legendary': []
         }
         
+        # Get user's current banner and unlocked banners
+        profile_data = self.storage.get_user_profile(ctx.author.id, ctx.guild.id)
+        current_banner_id = profile_data.get('banner', 'assassin')
+        user_banners = self.storage.get_banners(ctx.author.id, ctx.guild.id)
+        unlocked_banner_ids = [bg['id'] for bg in user_banners]
+        
+        # Include ALL banners in the display
         for banner_id, banner_info in self.available_banners.items():
+            # Skip default banner from the main list (users already have it)
             if banner_id == 'assassin':
                 continue
-            rarities[banner_info['rarity']].append(f"{banner_info['emoji']} **{banner_info['name']}**")
+                
+            rarity = banner_info['rarity']
+            is_unlocked = banner_id in unlocked_banner_ids
+            is_current = banner_id == current_banner_id
+            
+            status = " ✅" if is_unlocked else " 🔒"
+            current_indicator = " 🎯" if is_current else ""
+            
+            banner_display = f"{banner_info['emoji']} **{banner_info['name']}**{status}{current_indicator}"
+            rarities[rarity].append(banner_display)
         
         # Add fields for each rarity
         for rarity, banners in rarities.items():
@@ -509,24 +542,26 @@ class ProfileSystem(commands.Cog):
                     inline=False
                 )
         
-        embed.set_footer(text="Use !setbanner <name> to change your banner")
+        # Show user's current banner
+        current_banner_info = self.available_banners.get(current_banner_id, self.available_banners['assassin'])
+        embed.add_field(
+            name="🎯 Your Current Banner",
+            value=f"{current_banner_info['emoji']} **{current_banner_info['name']}**",
+            inline=False
+        )
+        
+        embed.set_footer(text="Use !bannerpreview <name> to see a banner | !setbanner <name> to equip")
         await ctx.send(embed=embed)
 
     @commands.command()
     async def bannerpreview(self, ctx, *, banner_name: str):
-        """Preview a specific banner"""
+        """Preview a specific banner with improved search"""
         if not self.storage:
             await ctx.send("❌ Storage system not available. Please contact bot administrator.")
             return
             
-        # Find banner by name
-        banner_id = None
-        banner_info = None
-        for bid, b_data in self.available_banners.items():
-            if b_data['name'].lower() == banner_name.lower():
-                banner_id = bid
-                banner_info = b_data
-                break
+        # Find banner by name using our improved function
+        banner_id, banner_info = self.find_banner_by_name(banner_name)
         
         if not banner_id or not banner_info:
             await ctx.send("❌ Banner not found! Use `!banners` to see available options.")
@@ -535,7 +570,7 @@ class ProfileSystem(commands.Cog):
         embed = discord.Embed(
             title=f"🎨 {banner_info['name']} Preview",
             description=f"**Rarity:** {banner_info['rarity'].title()}\n**Emoji:** {banner_info['emoji']}",
-            color=discord.Color(int(banner_info['color'].replace('#', ''), 16))
+            color=discord.Color(int(banner_info['color'].replace('#', ''), 16)) if banner_info.get('color') else discord.Color.blue()
         )
         
         if banner_info.get('banner_url'):
@@ -546,27 +581,22 @@ class ProfileSystem(commands.Cog):
         has_banner = any(bg['id'] == banner_id for bg in user_banners)
         
         if has_banner or banner_id == 'assassin':
-            embed.add_field(name="Status", value="✅ Unlocked", inline=True)
+            embed.add_field(name="Status", value="✅ Unlocked - You can use this banner!", inline=True)
+            embed.add_field(name="Action", value=f"Use `!setbanner {banner_info['name']}` to equip it!", inline=True)
         else:
-            embed.add_field(name="Status", value="🔒 Locked", inline=True)
+            embed.add_field(name="Status", value="🔒 Locked - Complete achievements to unlock!", inline=True)
         
         await ctx.send(embed=embed)
 
     @commands.command()
     async def setbanner(self, ctx, *, banner_name: str):
-        """Set your profile banner"""
+        """Set your profile banner with improved search"""
         if not self.storage:
             await ctx.send("❌ Storage system not available. Please contact bot administrator.")
             return
             
-        # Find banner by name
-        banner_id = None
-        banner_info = None
-        for bid, b_data in self.available_banners.items():
-            if b_data['name'].lower() == banner_name.lower():
-                banner_id = bid
-                banner_info = b_data
-                break
+        # Find banner by name using our improved function
+        banner_id, banner_info = self.find_banner_by_name(banner_name)
         
         if not banner_id:
             await ctx.send("❌ Banner not found! Use `!banners` to see available options.")
@@ -585,7 +615,7 @@ class ProfileSystem(commands.Cog):
         embed = discord.Embed(
             title="🎨 Banner Updated!",
             description=f"Your profile banner is now **{banner_info['name']}** {banner_info['emoji']}",
-            color=discord.Color(int(banner_info['color'].replace('#', ''), 16))
+            color=discord.Color(int(banner_info['color'].replace('#', ''), 16)) if banner_info.get('color') else discord.Color.blue()
         )
         
         if banner_info.get('banner_url'):
@@ -702,14 +732,8 @@ class ProfileSystem(commands.Cog):
             await ctx.send("❌ Storage system not available.")
             return
         
-        # Find banner by name
-        banner_id = None
-        banner_info = None
-        for bid, b_data in self.available_banners.items():
-            if b_data['name'].lower() == banner_name.lower():
-                banner_id = bid
-                banner_info = b_data
-                break
+        # Find banner by name using our improved function
+        banner_id, banner_info = self.find_banner_by_name(banner_name)
         
         if not banner_id:
             await ctx.send("❌ Banner not found! Use `!banners` to see available options.")
@@ -724,7 +748,7 @@ class ProfileSystem(commands.Cog):
         embed = discord.Embed(
             title="🎨 Banner Granted!",
             description=f"**{banner_info['name']}** {banner_info['emoji']} banner has been given to {member.mention}!",
-            color=discord.Color(int(banner_info['color'].replace('#', ''), 16))
+            color=discord.Color(int(banner_info['color'].replace('#', ''), 16)) if banner_info.get('color') else discord.Color.blue()
         )
         
         if banner_info.get('banner_url'):
@@ -753,7 +777,7 @@ class ProfileSystem(commands.Cog):
             self.storage.unlock_banner(target.id, ctx.guild.id, banner_id, banner_info['name'])
         
         # Set the most rare banner as current
-        rare_banners = ['space', 'galaxy', 'rainbow', 'neon', 'fire']
+        rare_banners = ['space', 'galaxy', 'techno', 'neon', 'fire']
         for banner_id in rare_banners:
             if banner_id in self.available_banners:
                 self.storage.update_user_banner(target.id, ctx.guild.id, banner_id)
@@ -768,7 +792,7 @@ class ProfileSystem(commands.Cog):
         embed.add_field(name="Granted by", value=ctx.author.mention, inline=True)
         
         # Show preview of the rarest banner
-        rarest_banner = self.available_banners.get('space', {})
+        rarest_banner = self.available_banners.get('techno', self.available_banners['space'])
         if rarest_banner.get('banner_url'):
             embed.set_image(url=rarest_banner['banner_url'])
         
@@ -802,9 +826,10 @@ class ProfileSystem(commands.Cog):
         
         # Add badge to user profile
         profile = self.storage.get_user_profile(member.id, ctx.guild.id)
-        if badge_id not in profile['badges']:
-            profile['badges'].append(badge_id)
-            self.storage.update_user_profile(member.id, ctx.guild.id, {'badges': profile['badges']})
+        current_badges = profile.get('badges', [])
+        if badge_id not in current_badges:
+            current_badges.append(badge_id)
+            self.storage.update_user_profile(member.id, ctx.guild.id, {'badges': current_badges})
         
         embed = discord.Embed(
             title="🎖️ Badge Granted!",
@@ -826,7 +851,7 @@ class ProfileSystem(commands.Cog):
         target = member or ctx.author
         user_banners = self.storage.get_banners(target.id, ctx.guild.id)
         current_profile = self.storage.get_user_profile(target.id, ctx.guild.id)
-        current_banner = current_profile['banner']
+        current_banner = current_profile.get('banner', 'assassin')
         
         embed = discord.Embed(
             title=f"🎨 {target.display_name}'s Banner Collection",
@@ -941,6 +966,41 @@ class ProfileSystem(commands.Cog):
         else:
             await ctx.send("❌ You already have this achievement!")
 
+    # 🆕 DEBUG COMMANDS
+    @commands.command()
+    async def debug_banners(self, ctx):
+        """Debug command to check all banner definitions"""
+        embed = discord.Embed(title="🔧 Banner Debug Info", color=discord.Color.orange())
+        
+        for banner_id, banner_info in self.available_banners.items():
+            embed.add_field(
+                name=banner_id,
+                value=f"Name: {banner_info['name']}\nRarity: {banner_info['rarity']}",
+                inline=True
+            )
+        
+        await ctx.send(embed=embed)
+
+    @commands.command()
+    async def test_banner_search(self, ctx, *, banner_name: str):
+        """Test banner search functionality"""
+        banner_id, banner_info = self.find_banner_by_name(banner_name)
+        
+        if banner_id:
+            embed = discord.Embed(
+                title="✅ Banner Found!",
+                description=f"**ID:** {banner_id}\n**Name:** {banner_info['name']}",
+                color=discord.Color.green()
+            )
+        else:
+            embed = discord.Embed(
+                title="❌ Banner Not Found",
+                description=f"No banner found for: {banner_name}",
+                color=discord.Color.red()
+            )
+        
+        await ctx.send(embed=embed)
+
     # 🚀 BACKWARD COMPATIBILITY - KEEP OLD COMMANDS WORKING
     @commands.command()
     async def backgrounds(self, ctx):
@@ -1026,6 +1086,3 @@ class ProfileSystem(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(ProfileSystem(bot))
-
-
-
