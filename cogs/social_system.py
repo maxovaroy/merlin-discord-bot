@@ -14,21 +14,24 @@ if parent_dir not in sys.path:
 
 try:
     from storage import DataStorage
-    import config  # ← CHANGED
-    storage = DataStorage(config)  # ← Also update this if needed
-except ImportError:
-    # ... fallback code
+    import config
+    storage = DataStorage()  # ← REMOVED the config argument
+    STORAGE_AVAILABLE = True
+    print("✅ Storage imported successfully for Social System!")
+except ImportError as e:
     print(f"❌ Failed to import storage modules: {e}")
     STORAGE_AVAILABLE = False
+    storage = None
 
 class SocialSystem(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        # Use the storage instance created above, don't create a new one
+        self.storage = storage
+        
         if STORAGE_AVAILABLE:
-            self.storage = DataStorage()
             print("✅ Social System loaded with storage!")
         else:
-            self.storage = None
             print("❌ Social System loaded WITHOUT storage - features limited")
         
         self.marriage_cooldowns = {}
@@ -565,4 +568,3 @@ class SocialSystem(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(SocialSystem(bot))
-
