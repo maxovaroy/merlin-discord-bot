@@ -74,7 +74,6 @@ class ProfileSystem(commands.Cog):
                 'banner_url': 'https://i.postimg.cc/fbTvKPtF/1000240134.png',
                 'color': '#FFD700'
             },
-            },
             'russian ghost': {
                 'name': 'russian ghost', 
                 'emoji': '🩸', 
@@ -1027,5 +1026,6 @@ class ProfileSystem(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(ProfileSystem(bot))
+
 
 
