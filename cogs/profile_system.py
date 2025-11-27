@@ -103,7 +103,7 @@ class ProfileSystem(commands.Cog):
                 'color': '#C20A0A'
             },
             'mikey': {
-                'name': 'Mikey',  # Change from 'mikey' to 'Mikey'
+                'name': 'Mikey', 
                 'emoji': '👽', 
                 'rarity': 'legendary',
                 'banner_url': 'https://i.postimg.cc/yYy3mzcz/1000240143.png',
@@ -230,11 +230,317 @@ class ProfileSystem(commands.Cog):
         if not STORAGE_AVAILABLE:
             print("❌ Storage system not available - profile features limited")
 
-    def create_progress_bar(self, percentage, length=20):
-        """Create a visual progress bar"""
+    # ========== LEVEL SYSTEM FUNCTIONS ==========
+
+    def calculate_level(self, xp):
+        """Calculate level based on XP using quadratic formula"""
+        # Level = floor(0.1 * sqrt(XP))
+        level = int(0.1 * (xp ** 0.5))
+        return max(1, level)
+
+    def calculate_xp_for_level(self, level):
+        """Calculate XP needed for a specific level"""
+        # XP = (level * 10) ^ 2
+        return (level * 10) ** 2
+
+    def calculate_xp_for_next_level(self, current_level):
+        """Calculate XP needed to reach next level"""
+        return self.calculate_xp_for_level(current_level + 1)
+
+    def create_progress_bar(self, current_xp, xp_needed, length=15):
+        """Create a visual progress bar for level progression"""
+        if xp_needed <= 0:
+            return '█' * length
+        
+        percentage = min((current_xp / xp_needed) * 100, 100)
         filled = int(length * percentage / 100)
         empty = length - filled
+        
+        # Use different characters for better visual
         return '█' * filled + '░' * empty
+
+    def add_xp(self, user_id, guild_id, xp_amount):
+        """Add XP to user and handle level ups"""
+        if not self.storage:
+            return None
+            
+        user_key = str(user_id)
+        server_key = str(guild_id)
+        
+        # Initialize user data if not exists
+        if server_key not in self.storage.user_levels:
+            self.storage.user_levels[server_key] = {}
+            
+        if user_key not in self.storage.user_levels[server_key]:
+            self.storage.user_levels[server_key][user_key] = {'xp': 0, 'level': 1}
+        
+        # Add XP
+        current_data = self.storage.user_levels[server_key][user_key]
+        old_xp = current_data['xp']
+        old_level = current_data['level']
+        
+        new_xp = old_xp + xp_amount
+        new_level = self.calculate_level(new_xp)
+        
+        # Update storage
+        self.storage.user_levels[server_key][user_key]['xp'] = new_xp
+        self.storage.user_levels[server_key][user_key]['level'] = new_level
+        
+        # Check for level up
+        level_up = new_level > old_level
+        
+        return {
+            'old_level': old_level,
+            'new_level': new_level,
+            'old_xp': old_xp,
+            'new_xp': new_xp,
+            'level_up': level_up,
+            'levels_gained': new_level - old_level
+        }
+
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        """Give XP for messages and handle level ups"""
+        if message.author.bot or not self.storage:
+            return
+            
+        # Ignore commands
+        if message.content.startswith('!'):
+            return
+            
+        # Give random XP between 5-15 for each message
+        xp_gained = random.randint(5, 15)
+        result = self.add_xp(message.author.id, message.guild.id, xp_gained)
+        
+        if result and result['level_up']:
+            # Send level up notification for significant level ups
+            if result['levels_gained'] > 0:
+                embed = discord.Embed(
+                    title="🎉 Level Up!",
+                    description=f"**{message.author.display_name}** reached level **{result['new_level']}**!",
+                    color=discord.Color.gold()
+                )
+                
+                # Add special rewards for milestone levels
+                if result['new_level'] in [5, 10, 20, 50, 100]:
+                    rewards = {
+                        5: "🏆 **Unlocked:** Profile customization",
+                        10: "🌟 **Unlocked:** Advanced banners", 
+                        20: "💎 **Unlocked:** Rare achievement",
+                        50: "👑 **Unlocked:** Legendary status",
+                        100: "🌈 **Unlocked:** Ultimate banner"
+                    }
+                    embed.add_field(name="🎁 Milestone Reward", value=rewards[result['new_level']], inline=False)
+                
+                embed.set_thumbnail(url=message.author.avatar.url if message.author.avatar else message.author.default_avatar.url)
+                await message.channel.send(embed=embed)
+
+    @commands.command()
+    async def level(self, ctx, member: discord.Member = None):
+        """Check your level and XP progress"""
+        if not self.storage:
+            await ctx.send("❌ Storage system not available. Please contact bot administrator.")
+            return
+            
+        target = member or ctx.author
+        
+        try:
+            user_key = str(target.id)
+            server_key = str(ctx.guild.id)
+            
+            if (server_key in self.storage.user_levels and 
+                user_key in self.storage.user_levels[server_key]):
+                user_data = self.storage.user_levels[server_key][user_key]
+                current_xp = user_data.get('xp', 0)
+                current_level = user_data.get('level', 1)
+            else:
+                current_xp = 0
+                current_level = 1
+            
+            # Calculate XP requirements
+            xp_for_current_level = self.calculate_xp_for_level(current_level)
+            xp_for_next_level = self.calculate_xp_for_level(current_level + 1)
+            xp_needed = xp_for_next_level - current_xp
+            xp_progress = current_xp - xp_for_current_level
+            xp_range = xp_for_next_level - xp_for_current_level
+            
+            # Create progress bar
+            progress_percentage = (xp_progress / xp_range) * 100 if xp_range > 0 else 100
+            progress_bar = self.create_progress_bar(xp_progress, xp_range)
+            
+            embed = discord.Embed(
+                title=f"📊 {target.display_name}'s Level",
+                color=discord.Color.blue()
+            )
+            
+            embed.add_field(
+                name="Level Info",
+                value=(
+                    f"**Level:** {current_level}\n"
+                    f"**Total XP:** {current_xp:,}\n"
+                    f"**XP to Next Level:** {xp_needed:,}\n"
+                    f"**Progress:** {xp_progress:,}/{xp_range:,} XP"
+                ),
+                inline=False
+            )
+            
+            embed.add_field(
+                name="Progress",
+                value=f"`{progress_bar}` {progress_percentage:.1f}%",
+                inline=False
+            )
+            
+            # Add rank information if available
+            if server_key in self.storage.user_levels:
+                users = self.storage.user_levels[server_key]
+                sorted_users = sorted(users.items(), key=lambda x: x[1].get('xp', 0), reverse=True)
+                user_rank = next((i+1 for i, (uid, _) in enumerate(sorted_users) if uid == user_key), len(sorted_users)+1)
+                embed.add_field(
+                    name="Rank",
+                    value=f"**Server Rank:** #{user_rank} out of {len(sorted_users)} users",
+                    inline=False
+                )
+            
+            embed.set_thumbnail(url=target.avatar.url if target.avatar else target.default_avatar.url)
+            await ctx.send(embed=embed)
+            
+        except Exception as e:
+            print(f"❌ Error in level command: {e}")
+            await ctx.send("❌ An error occurred while fetching level information.")
+
+    @commands.command()
+    async def leaderboard(self, ctx, top: int = 10):
+        """Show server level leaderboard"""
+        if not self.storage:
+            await ctx.send("❌ Storage system not available. Please contact bot administrator.")
+            return
+            
+        if top < 1 or top > 20:
+            await ctx.send("❌ Please choose a number between 1 and 20 for the leaderboard.")
+            return
+            
+        try:
+            server_key = str(ctx.guild.id)
+            
+            if server_key not in self.storage.user_levels or not self.storage.user_levels[server_key]:
+                await ctx.send("📊 No level data available yet. Start chatting to gain XP!")
+                return
+            
+            users = self.storage.user_levels[server_key]
+            sorted_users = sorted(users.items(), key=lambda x: x[1].get('xp', 0), reverse=True)[:top]
+            
+            embed = discord.Embed(
+                title="🏆 Level Leaderboard",
+                description=f"Top {top} users in {ctx.guild.name}",
+                color=discord.Color.gold()
+            )
+            
+            leaderboard_text = ""
+            for rank, (user_id, user_data) in enumerate(sorted_users, 1):
+                try:
+                    member = ctx.guild.get_member(int(user_id))
+                    if member:
+                        username = member.display_name
+                        level = user_data.get('level', 1)
+                        xp = user_data.get('xp', 0)
+                        
+                        medals = {1: "🥇", 2: "🥈", 3: "🥉"}
+                        medal = medals.get(rank, f"#{rank}")
+                        
+                        leaderboard_text += f"{medal} **{username}** - Level {level} ({xp:,} XP)\n"
+                    else:
+                        leaderboard_text += f"#{rank} *User left* - Level {user_data.get('level', 1)}\n"
+                except:
+                    continue
+            
+            if leaderboard_text:
+                embed.add_field(name="Rankings", value=leaderboard_text, inline=False)
+            else:
+                embed.description = "No users found in the leaderboard."
+            
+            await ctx.send(embed=embed)
+            
+        except Exception as e:
+            print(f"❌ Error in leaderboard command: {e}")
+            await ctx.send("❌ An error occurred while generating the leaderboard.")
+
+    @commands.command()
+    async def givexp(self, ctx, member: discord.Member, xp_amount: int):
+        """Give XP to a user (Admin only)"""
+        if not ctx.author.guild_permissions.administrator:
+            await ctx.send("❌ You need administrator permissions to use this command!")
+            return
+            
+        if not self.storage:
+            await ctx.send("❌ Storage system not available. Please contact bot administrator.")
+            return
+            
+        if xp_amount < 1 or xp_amount > 1000:
+            await ctx.send("❌ XP amount must be between 1 and 1000.")
+            return
+            
+        result = self.add_xp(member.id, ctx.guild.id, xp_amount)
+        
+        if result:
+            embed = discord.Embed(
+                title="⭐ XP Granted!",
+                description=f"Gave **{xp_amount} XP** to {member.mention}",
+                color=discord.Color.green()
+            )
+            
+            embed.add_field(name="New Level", value=result['new_level'], inline=True)
+            embed.add_field(name="Total XP", value=f"{result['new_xp']:,}", inline=True)
+            
+            if result['level_up']:
+                embed.add_field(
+                    name="🎉 Level Up!", 
+                    value=f"Reached level {result['new_level']}!", 
+                    inline=False
+                )
+            
+            await ctx.send(embed=embed)
+        else:
+            await ctx.send("❌ Failed to give XP.")
+
+    @commands.command()
+    async def resetlevel(self, ctx, member: discord.Member = None):
+        """Reset user level (Admin only)"""
+        if not ctx.author.guild_permissions.administrator:
+            await ctx.send("❌ You need administrator permissions to use this command!")
+            return
+            
+        if not self.storage:
+            await ctx.send("❌ Storage system not available. Please contact bot administrator.")
+            return
+            
+        target = member or ctx.author
+        
+        user_key = str(target.id)
+        server_key = str(ctx.guild.id)
+        
+        if (server_key in self.storage.user_levels and 
+            user_key in self.storage.user_levels[server_key]):
+            # Store old data for message
+            old_xp = self.storage.user_levels[server_key][user_key].get('xp', 0)
+            old_level = self.storage.user_levels[server_key][user_key].get('level', 1)
+            
+            # Reset to level 1
+            self.storage.user_levels[server_key][user_key] = {'xp': 0, 'level': 1}
+            
+            embed = discord.Embed(
+                title="🔄 Level Reset",
+                description=f"Reset {target.mention}'s level and XP",
+                color=discord.Color.orange()
+            )
+            embed.add_field(name="Previous Level", value=old_level, inline=True)
+            embed.add_field(name="Previous XP", value=f"{old_xp:,}", inline=True)
+            embed.add_field(name="New Level", value="1", inline=True)
+            
+            await ctx.send(embed=embed)
+        else:
+            await ctx.send("❌ User doesn't have any level data to reset.")
+
+    # ========== EXISTING PROFILE SYSTEM FUNCTIONS ==========
 
     def find_banner_by_name(self, banner_name):
         """Find banner by name (case-insensitive and flexible matching)"""
@@ -298,7 +604,7 @@ class ProfileSystem(commands.Cog):
         # Get all user data
         profile_data = self.storage.get_user_profile(target.id, ctx.guild.id)
         
-        # Get level data
+        # Get level data using new system
         try:
             user_key = str(target.id)
             server_key = str(ctx.guild.id)
@@ -314,16 +620,19 @@ class ProfileSystem(commands.Cog):
             level = 1
             xp = 0
         
+        # Calculate XP progress for progress bar
+        xp_for_current_level = self.calculate_xp_for_level(level)
+        xp_for_next_level = self.calculate_xp_for_level(level + 1)
+        xp_progress_current = xp - xp_for_current_level
+        xp_range = xp_for_next_level - xp_for_current_level
+        xp_progress_percentage = (xp_progress_current / xp_range) * 100 if xp_range > 0 else 100
+        
         # Get social data
         marriage_data = self.storage.get_marriage(target.id, ctx.guild.id)
         children_count = len(self.storage.get_children(target.id, ctx.guild.id))
         friends_count = len(self.storage.get_friends(target.id, ctx.guild.id))
         rep_data = self.storage.get_reputation(target.id, ctx.guild.id)
         gifts_data = self.storage.get_gifts(target.id, ctx.guild.id)
-        
-        # Calculate XP for next level
-        xp_needed = level * 100
-        xp_progress = min((xp / xp_needed) * 100, 100) if xp_needed > 0 else 0
         
         # Get current banner info
         current_banner_id = profile_data.get('banner', 'assassin')
@@ -347,7 +656,7 @@ class ProfileSystem(commands.Cog):
             name="🎯 Profile Info",
             value=(
                 f"**Title:** {profile_data.get('title', 'No title set')}\n"
-                f"**Level:** {level} • **XP:** {xp}/{xp_needed}\n"
+                f"**Level:** {level} • **XP:** {xp:,}\n"
                 f"**Banner:** {banner_info['emoji']} {banner_info['name']}\n"
                 f"**Bio:** {profile_data.get('bio', 'No bio set')}"
             ),
@@ -384,11 +693,11 @@ class ProfileSystem(commands.Cog):
                 inline=True
             )
         
-        # Progress bar for XP
-        progress_bar = self.create_progress_bar(xp_progress)
+        # Progress bar for XP using new system
+        progress_bar = self.create_progress_bar(xp_progress_current, xp_range)
         embed.add_field(
             name="📈 Level Progress",
-            value=f"`{progress_bar}` {xp_progress:.1f}%",
+            value=f"`{progress_bar}` {xp_progress_percentage:.1f}%",
             inline=False
         )
         
@@ -454,7 +763,7 @@ class ProfileSystem(commands.Cog):
             inline=False
         )
         
-        progress_bar = self.create_progress_bar(50)  # 50% for preview
+        progress_bar = self.create_progress_bar(1250, 2500)  # 50% for preview
         embed.add_field(
             name="Level Progress",
             value=f"`{progress_bar}` 50.0%",
@@ -824,7 +1133,7 @@ class ProfileSystem(commands.Cog):
             self.storage.unlock_banner(target.id, ctx.guild.id, banner_id, banner_info['name'])
         
         # Set the most rare banner as current
-        rare_banners = ['space', 'galaxy', 'techno', 'neon', 'fire']
+        rare_banners = ['space', 'techno', 'mikey', 'neon', 'fire']
         for banner_id in rare_banners:
             if banner_id in self.available_banners:
                 self.storage.update_user_banner(target.id, ctx.guild.id, banner_id)
@@ -1105,6 +1414,17 @@ class ProfileSystem(commands.Cog):
         )
         
         embed.add_field(
+            name="🎮 Level System Commands",
+            value=(
+                "`!level [@user]` - Check level and XP\n"
+                "`!leaderboard [top=10]` - Show server rankings\n"
+                "`!givexp @user <amount>` - Give XP (Admin)\n"
+                "`!resetlevel [@user]` - Reset level (Admin)"
+            ),
+            inline=False
+        )
+        
+        embed.add_field(
             name="🎯 Achievement Rarities",
             value=(
                 "**Common** 🏆 - Easy to get\n"
@@ -1133,7 +1453,3 @@ class ProfileSystem(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(ProfileSystem(bot))
-
-
-
-
