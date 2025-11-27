@@ -32,118 +32,115 @@ class ProfileSystem(commands.Cog):
         empty = length - filled
         return '█' * filled + '░' * empty
 
-    @commands.command()
-    async def profile(self, ctx, member: discord.Member = None):
-        """View your enhanced Koya-style profile card"""
-        if not self.storage:
-            await ctx.send("❌ Storage system not available. Please contact bot administrator.")
-            return
-            
-        target = member or ctx.author
+@commands.command()
+async def profile(self, ctx, member: discord.Member = None):
+    """Display user profile with banner"""
+    if not self.storage:
+        await ctx.send("❌ Storage system not available. Please contact bot administrator.")
+        return
         
-        # Increment profile views
-        self.storage.increment_profile_views(target.id, ctx.guild.id)
-        
-        # Get all user data
-        profile_data = self.storage.get_user_profile(target.id, ctx.guild.id)
-        
-        # Get level data
-        try:
-            user_key = str(target.id)
-            server_key = str(ctx.guild.id)
-            if (server_key in self.storage.user_levels and 
-                user_key in self.storage.user_levels[server_key]):
-                level_data = self.storage.user_levels[server_key][user_key]
-                level = level_data.get('level', 1)
-                xp = level_data.get('xp', 0)
-            else:
-                level = 1
-                xp = 0
-        except:
-            level = 1
-            xp = 0
-        
-        # Get social data
-        marriage_data = self.storage.get_marriage(target.id, ctx.guild.id)
-        children_count = len(self.storage.get_children(target.id, ctx.guild.id))
-        friends_count = len(self.storage.get_friends(target.id, ctx.guild.id))
-        rep_data = self.storage.get_reputation(target.id, ctx.guild.id)
-        gifts_data = self.storage.get_gifts(target.id, ctx.guild.id)
-        
-        # Calculate XP for next level
-        xp_needed = level * 100
-        xp_progress = min((xp / xp_needed) * 100, 100) if xp_needed > 0 else 0
-        
-        # Get current banner info (you'll need to import banner system or access it differently)
-        current_banner_id = profile_data.get('banner', 'assassin')
-        # Note: You'll need to access banners from the banner system
-        
-        # Create Koya-style profile embed
-        embed = discord.Embed(
-            title=f"👤 {target.display_name}'s Profile",
-            color=discord.Color.blue()
-        )
-        
-        # Profile header with avatar and main info
-        embed.set_thumbnail(url=target.avatar.url if target.avatar else target.default_avatar.url)
-        
-        # Main profile section
-        embed.add_field(
-            name="🎯 Profile Info",
-            value=(
-                f"**Title:** {profile_data.get('title', 'No title set')}\n"
-                f"**Level:** {level} • **XP:** {xp}/{xp_needed}\n"
-                f"**Bio:** {profile_data.get('bio', 'No bio set')}"
-            ),
-            inline=False
-        )
-        
-        # Stats section
-        embed.add_field(
-            name="📊 Statistics",
-            value=(
-                f"⭐ **Reputation:** {rep_data}\n"
-                f"👀 **Profile Views:** {profile_data.get('profile_views', 0)}\n"
-                f"👥 **Friends:** {friends_count}\n"
-                f"🎁 **Gifts Sent:** {gifts_data}"
-            ),
-            inline=True
-        )
-        
-        # Social section
-        social_text = ""
-        if marriage_data:
-            partner_id = marriage_data['partner']
-            partner = ctx.guild.get_member(partner_id)
-            partner_name = partner.display_name if partner else f"User {partner_id}"
-            social_text += f"💍 **Married to:** {partner_name}\n"
-        
-        if children_count > 0:
-            social_text += f"👶 **Children:** {children_count}\n"
-        
-        if social_text:
-            embed.add_field(
-                name="💕 Social",
-                value=social_text,
-                inline=True
-            )
-        
-        # Progress bar for XP
-        progress_bar = self.create_progress_bar(xp_progress)
-        embed.add_field(
-            name="📈 Level Progress",
-            value=f"`{progress_bar}` {xp_progress:.1f}%",
-            inline=False
-        )
-        
-        # Footer with member info
-        member_since = target.joined_at.strftime('%b %d, %Y') if target.joined_at else "Unknown"
-        embed.set_footer(
-            text=f"Member since: {member_since} • WEICO PROFILE • PLS CHECK #ROLES",
-            icon_url=target.avatar.url if target.avatar else target.default_avatar.url
-        )
-        
-        await ctx.send(embed=embed)
+    target = member or ctx.author
+    
+    # Get user profile data
+    profile_data = self.storage.get_user_profile(target.id, ctx.guild.id)
+    
+    if not profile_data:
+        await ctx.send("❌ Profile not found! Start chatting to create your profile.")
+        return
+    
+    # Get banner information
+    banner_id = profile_data.get('banner', 'assassin')  # Default to assassin banner
+    
+    # Try to import banner system to get banner info
+    try:
+        # Get the banner cog instance
+        banner_cog = self.bot.get_cog('BannerSystem')
+        if banner_cog:
+            banner_info = banner_cog.available_banners.get(banner_id, banner_cog.available_banners['assassin'])
+            banner_name = banner_info['name']
+            banner_emoji = banner_info['emoji']
+            banner_color = banner_info.get('color', '#7289DA')
+            banner_url = banner_info.get('banner_url')
+        else:
+            banner_name = "Assassin"
+            banner_emoji = "🗡️"
+            banner_color = "#7289DA"
+            banner_url = None
+    except:
+        banner_name = "Assassin"
+        banner_emoji = "🗡️"
+        banner_color = "#7289DA"
+        banner_url = None
+    
+    # Calculate level and progress
+    total_xp = profile_data.get('xp', 0)
+    level_info = self.calculate_level(total_xp)
+    current_level = level_info['level']
+    current_xp = level_info['current_xp']
+    required_xp = level_info['required_xp']
+    progress_percentage = level_info['progress_percentage']
+    
+    # Create progress bar
+    progress_bar = self.create_progress_bar(progress_percentage)
+    
+    # Create embed
+    embed_color = discord.Color(int(banner_color.replace('#', ''), 16)) if banner_color else discord.Color.blue()
+    
+    embed = discord.Embed(
+        title=f"{banner_emoji} {target.display_name}'s Profile",
+        color=embed_color
+    )
+    
+    # Add banner image if available
+    if banner_url:
+        embed.set_image(url=banner_url)
+    
+    # Add profile fields
+    embed.add_field(
+        name="🎯 Level & XP",
+        value=f"**Level {current_level}**\n{progress_bar}\n{current_xp}/{required_xp} XP ({progress_percentage}%)",
+        inline=True
+    )
+    
+    embed.add_field(
+        name="🎨 Banner",
+        value=f"{banner_emoji} **{banner_name}**",
+        inline=True
+    )
+    
+    # Add other profile stats
+    messages_sent = profile_data.get('messages_sent', 0)
+    join_date = profile_data.get('join_date', 'Unknown')
+    reputation = profile_data.get('reputation', 0)
+    
+    embed.add_field(
+        name="📊 Stats",
+        value=f"**Messages:** {messages_sent:,}\n**Reputation:** {reputation}\n**Joined:** {join_date}",
+        inline=False
+    )
+    
+    # Add achievements if available
+    try:
+        achievement_cog = self.bot.get_cog('AchievementSystem')
+        if achievement_cog:
+            user_achievements = self.storage.get_achievements(target.id, ctx.guild.id)
+            if user_achievements:
+                completed = len([a for a in user_achievements if a.get('completed', False)])
+                embed.add_field(
+                    name="🏆 Achievements",
+                    value=f"**{completed}/{len(user_achievements)}** completed",
+                    inline=True
+                )
+    except:
+        pass
+    
+    # Set thumbnail as user avatar
+    embed.set_thumbnail(url=target.display_avatar.url)
+    
+    # Add footer with banner info
+    embed.set_footer(text=f"Use !banners to see available banners | !setbanner to change")
+    
+    await ctx.send(embed=embed)
 
     @commands.command()
     async def setbio(self, ctx, *, bio: str = None):
@@ -287,3 +284,4 @@ async def setup(bot):
     from storage import DataStorage
     storage = DataStorage()
     await bot.add_cog(ProfileSystem(bot, storage))
+
