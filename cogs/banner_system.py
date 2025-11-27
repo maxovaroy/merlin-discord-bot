@@ -426,6 +426,12 @@ class BannerSystem(commands.Cog):
         await ctx.send(embed=embed)
 
 async def setup(bot):
-    from storage import DataStorage
-    storage = DataStorage()
-    await bot.add_cog(BannerSystem(bot, storage))
+    try:
+        from storage import DataStorage
+        storage = DataStorage()
+        await bot.add_cog(BannerSystem(bot, storage))
+        print("✅ BannerSystem cog loaded successfully!")
+    except Exception as e:
+        print(f"❌ Failed to load BannerSystem: {e}")
+        # Fallback without storage
+        await bot.add_cog(BannerSystem(bot, None))
