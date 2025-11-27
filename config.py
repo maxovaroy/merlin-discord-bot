@@ -2,7 +2,7 @@ import os
 
 class Config:
     # Bot Settings
-    BOT_TOKEN = "MTMxNTY2NDcwMjMxOTM2MjA2OA.GyRvSY.wt9_HAcxdlF6gOejlNX5wN-UPUt38Q58WZNGwc"
+    BOT_TOKEN = os.getenv("BOT_TOKEN")
     PREFIX = "!"
     
     # Data files
@@ -80,4 +80,5 @@ class Config:
             raise ValueError("❌ PREFIX not set")
 
         return True
+
 
