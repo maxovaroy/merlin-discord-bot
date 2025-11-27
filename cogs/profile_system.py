@@ -238,24 +238,49 @@ class ProfileSystem(commands.Cog):
 
     def find_banner_by_name(self, banner_name):
         """Find banner by name (case-insensitive and flexible matching)"""
+        if not banner_name:
+            return None, None
+            
         banner_name_lower = banner_name.lower().strip()
         
-        # Exact match first
+        print(f"🔍 Searching for banner: '{banner_name}' -> '{banner_name_lower}'")
+        
+        # First, check exact matches
         for banner_id, banner_info in self.available_banners.items():
+            # Exact ID match
             if banner_id.lower() == banner_name_lower:
+                print(f"✅ Exact ID match: {banner_id}")
                 return banner_id, banner_info
-        
-        # Flexible name matching
-        for banner_id, banner_info in self.available_banners.items():
+            
+            # Exact name match
             if banner_info['name'].lower() == banner_name_lower:
-                return banner_id, banner_info
-            if banner_name_lower in banner_info['name'].lower():
-                return banner_id, banner_info
-            if banner_info['name'].lower().replace(' ', '_') == banner_name_lower:
-                return banner_id, banner_info
-            if banner_name_lower.replace(' ', '_') == banner_id:
+                print(f"✅ Exact name match: {banner_info['name']}")
                 return banner_id, banner_info
         
+        # Then check partial matches
+        for banner_id, banner_info in self.available_banners.items():
+            banner_name_display = banner_info['name'].lower()
+            
+            # Remove spaces and special characters for better matching
+            search_term = banner_name_lower.replace(' ', '').replace('_', '').replace('-', '')
+            banner_term = banner_name_display.replace(' ', '').replace('_', '').replace('-', '')
+            
+            # Partial match in display name
+            if banner_name_lower in banner_name_display:
+                print(f"✅ Partial match in name: {banner_info['name']}")
+                return banner_id, banner_info
+            
+            # Partial match in ID
+            if banner_name_lower in banner_id.lower():
+                print(f"✅ Partial match in ID: {banner_id}")
+                return banner_id, banner_info
+            
+            # Fuzzy match without spaces
+            if search_term in banner_term or banner_term in search_term:
+                print(f"✅ Fuzzy match: {banner_info['name']}")
+                return banner_id, banner_info
+        
+        print(f"❌ No banner found for: {banner_name}")
         return None, None
 
     @commands.command()
@@ -392,7 +417,9 @@ class ProfileSystem(commands.Cog):
         banner_id, banner_info = self.find_banner_by_name(banner_name)
         
         if not banner_id:
-            await ctx.send("❌ Banner not found! Use `!banners` to see available options.")
+            # Show available banners to help user
+            available_names = [b['name'] for b in self.available_banners.values()]
+            await ctx.send(f"❌ Banner '{banner_name}' not found! Available banners: {', '.join(available_names)}")
             return
         
         # Check if user has this banner
@@ -564,7 +591,9 @@ class ProfileSystem(commands.Cog):
         banner_id, banner_info = self.find_banner_by_name(banner_name)
         
         if not banner_id or not banner_info:
-            await ctx.send("❌ Banner not found! Use `!banners` to see available options.")
+            # Show available banners to help user
+            available_names = [b['name'] for b in self.available_banners.values()]
+            await ctx.send(f"❌ Banner '{banner_name}' not found! Available banners: {', '.join(available_names)}")
             return
         
         embed = discord.Embed(
@@ -599,7 +628,9 @@ class ProfileSystem(commands.Cog):
         banner_id, banner_info = self.find_banner_by_name(banner_name)
         
         if not banner_id:
-            await ctx.send("❌ Banner not found! Use `!banners` to see available options.")
+            # Show available banners to help user
+            available_names = [b['name'] for b in self.available_banners.values()]
+            await ctx.send(f"❌ Banner '{banner_name}' not found! Available banners: {', '.join(available_names)}")
             return
         
         # Check if user has unlocked this banner
@@ -736,7 +767,9 @@ class ProfileSystem(commands.Cog):
         banner_id, banner_info = self.find_banner_by_name(banner_name)
         
         if not banner_id:
-            await ctx.send("❌ Banner not found! Use `!banners` to see available options.")
+            # Show available banners to help user
+            available_names = [b['name'] for b in self.available_banners.values()]
+            await ctx.send(f"❌ Banner '{banner_name}' not found! Available banners: {', '.join(available_names)}")
             return
         
         # Unlock the banner for the user
