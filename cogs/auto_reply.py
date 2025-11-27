@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 import random
-from config import Config
+import config
 import json
 import os
 from datetime import datetime
@@ -297,3 +297,4 @@ class AutoReply(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(AutoReply(bot))
+
