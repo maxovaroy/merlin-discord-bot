@@ -477,44 +477,58 @@ class ProfileSystem(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.command()
-    async def setbio(self, ctx, *, bio: str):
+    async def setbio(self, ctx, *, bio: str = None):
         """Set your profile biography"""
         if not self.storage:
             await ctx.send("❌ Storage system not available. Please contact bot administrator.")
+            return
+            
+        if not bio:
+            await ctx.send("❌ Please provide a biography! Example: `!setbio I love coding!`")
             return
             
         if len(bio) > 200:
             await ctx.send("❌ Biography too long! Maximum 200 characters.")
             return
         
-        self.storage.update_user_profile(ctx.author.id, ctx.guild.id, {'bio': bio})
-        
-        embed = discord.Embed(
-            title="📝 Biography Updated!",
-            description=f"**New bio:** {bio}",
-            color=discord.Color.green()
-        )
-        await ctx.send(embed=embed)
+        try:
+            self.storage.update_user_profile(ctx.author.id, ctx.guild.id, {'bio': bio})
+            
+            embed = discord.Embed(
+                title="📝 Biography Updated!",
+                description=f"**New bio:** {bio}",
+                color=discord.Color.green()
+            )
+            await ctx.send(embed=embed)
+        except Exception as e:
+            await ctx.send(f"❌ Error updating bio: {e}")
 
     @commands.command()
-    async def settitle(self, ctx, *, title: str):
+    async def settitle(self, ctx, *, title: str = None):
         """Set your profile title"""
         if not self.storage:
             await ctx.send("❌ Storage system not available. Please contact bot administrator.")
+            return
+            
+        if not title:
+            await ctx.send("❌ Please provide a title! Example: `!settitle Pro Coder`")
             return
             
         if len(title) > 25:
             await ctx.send("❌ Title too long! Maximum 25 characters.")
             return
         
-        self.storage.update_user_profile(ctx.author.id, ctx.guild.id, {'title': title})
-        
-        embed = discord.Embed(
-            title="🎖️ Title Updated!",
-            description=f"**New title:** {title}",
-            color=discord.Color.gold()
-        )
-        await ctx.send(embed=embed)
+        try:
+            self.storage.update_user_profile(ctx.author.id, ctx.guild.id, {'title': title})
+            
+            embed = discord.Embed(
+                title="🎖️ Title Updated!",
+                description=f"**New title:** {title}",
+                color=discord.Color.gold()
+            )
+            await ctx.send(embed=embed)
+        except Exception as e:
+            await ctx.send(f"❌ Error updating title: {e}")
 
     @commands.command()
     async def banners(self, ctx):
@@ -1119,6 +1133,7 @@ class ProfileSystem(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(ProfileSystem(bot))
+
 
 
 
