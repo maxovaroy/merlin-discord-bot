@@ -7,9 +7,10 @@ import os
 import sys
 import asyncio
 
-# Try to import config
+# Import config - FIXED for your config structure
 try:
-    from config import BOT_TOKEN, PREFIX, COGS
+    import config
+    print("✅ Config imported successfully!")
 except ImportError as e:
     print(f"❌ Failed to import config: {e}")
     sys.exit(1)
@@ -17,9 +18,10 @@ except ImportError as e:
 class MerlinBot(commands.Bot):
     def __init__(self):
         super().__init__(
-            command_prefix=PREFIX,
+            command_prefix=config.PREFIX,
             intents=discord.Intents.all(),
-            help_command=None
+            help_command=None,
+            owner_ids=set(config.OWNER_IDS) if hasattr(config, 'OWNER_IDS') else set()
         )
     
     async def setup_hook(self):
@@ -27,9 +29,9 @@ class MerlinBot(commands.Bot):
         print("🚀 Starting Merlin Discord Bot...")
         print("📦 Loading cogs...")
         
-        # Load each cog
+        # Load each cog from config
         loaded = 0
-        for cog in COGS:
+        for cog in config.COGS:
             try:
                 await self.load_extension(cog)
                 print(f"   ✅ {cog}")
@@ -37,7 +39,7 @@ class MerlinBot(commands.Bot):
             except Exception as e:
                 print(f"   ❌ {cog}: {e}")
         
-        print(f"📊 Loaded {loaded}/{len(COGS)} cogs")
+        print(f"📊 Loaded {loaded}/{len(config.COGS)} cogs")
     
     async def on_ready(self):
         """When bot is ready"""
@@ -48,7 +50,7 @@ class MerlinBot(commands.Bot):
         # Set bot status
         activity = discord.Activity(
             type=discord.ActivityType.watching,
-            name=f"{len(self.guilds)} servers | {PREFIX}help"
+            name=f"{len(self.guilds)} servers | {config.PREFIX}help"
         )
         await self.change_presence(activity=activity)
         
@@ -60,8 +62,16 @@ async def main():
     print("🤖 Merlin Discord Bot - Starting Up...")
     print("=" * 50)
     
+    # Validate config using the function from config
+    if hasattr(config, 'validate_config'):
+        if not config.validate_config():
+            print("❌ Configuration validation failed!")
+            return
+    else:
+        print("⚠️  No config validation function found, continuing...")
+    
     # Validate token
-    if not BOT_TOKEN or BOT_TOKEN == "YOUR_BOT_TOKEN_HERE":
+    if not config.BOT_TOKEN or config.BOT_TOKEN == "YOUR_BOT_TOKEN_HERE":
         print("❌ ERROR: Bot token not configured!")
         print("\n🔧 For Zampto Deployment:")
         print("1. Edit config.py and set your actual token:")
@@ -69,7 +79,7 @@ async def main():
         print("2. Save and the bot will auto-restart")
         return
     
-    if len(BOT_TOKEN) < 50:
+    if len(config.BOT_TOKEN) < 50:
         print("❌ ERROR: Bot token appears invalid (too short)")
         return
     
@@ -77,7 +87,7 @@ async def main():
     bot = MerlinBot()
     
     try:
-        await bot.start(BOT_TOKEN)
+        await bot.start(config.BOT_TOKEN)
     except discord.LoginFailure:
         print("❌ INVALID BOT TOKEN! Please:")
         print("1. Go to https://discord.com/developers/applications")
