@@ -5,7 +5,51 @@ import asyncio
 from datetime import datetime
 from typing import Dict, List
 import logging
-from config import Config
+
+# Fix the config import
+try:
+    import config
+    # Create a Config class that works with your config structure
+    class Config:
+        DATA_FILE = getattr(config, 'DATA_FILE', 'bot_data.json')
+        LEVEL_DATA_FILE = getattr(config, 'LEVEL_DATA_FILE', 'level_data.json')
+        CIVILIZATION_DATA_FILE = getattr(config, 'CIVILIZATION_DATA_FILE', 'civilization_data.json')
+        
+        # Auto-Reply Settings
+        AUTO_REPLY_CHANCE = getattr(config, 'AUTO_REPLY_CHANCE', 0.3)
+        AUTO_REPLIES = getattr(config, 'AUTO_REPLIES', {})
+        
+        # Level System Settings
+        LEVEL_SETTINGS = getattr(config, 'LEVEL_SETTINGS', {
+            "base_xp": 100,
+            "xp_multiplier": 1.5,
+            "cooldown": 60,
+            "max_level": 100
+        })
+        
+        @classmethod
+        def validate_config(cls):
+            return getattr(config, 'validate_config', lambda: True)()
+            
+except ImportError as e:
+    print(f"❌ Config import warning: {e}")
+    # Fallback if config doesn't exist
+    class Config:
+        DATA_FILE = "bot_data.json"
+        LEVEL_DATA_FILE = "level_data.json"
+        CIVILIZATION_DATA_FILE = "civilization_data.json"
+        AUTO_REPLY_CHANCE = 0.3
+        AUTO_REPLIES = {}
+        LEVEL_SETTINGS = {
+            "base_xp": 100,
+            "xp_multiplier": 1.5, 
+            "cooldown": 60,
+            "max_level": 100
+        }
+        
+        @classmethod
+        def validate_config(cls):
+            return True
 
 logger = logging.getLogger(__name__)
 
