@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 import random
-from config import Config
+import config
 
 class NameTroll(commands.Cog):
     def __init__(self, bot):
@@ -302,3 +302,4 @@ class NameTroll(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(NameTroll(bot))
+
