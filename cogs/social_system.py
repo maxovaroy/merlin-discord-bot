@@ -14,9 +14,10 @@ if parent_dir not in sys.path:
 
 try:
     from storage import DataStorage
-    from config import Config
-    STORAGE_AVAILABLE = True
-except ImportError as e:
+    import config  # ← CHANGED
+    storage = DataStorage(config)  # ← Also update this if needed
+except ImportError:
+    # ... fallback code
     print(f"❌ Failed to import storage modules: {e}")
     STORAGE_AVAILABLE = False
 
@@ -564,3 +565,4 @@ class SocialSystem(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(SocialSystem(bot))
+
