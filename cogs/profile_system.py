@@ -102,13 +102,13 @@ class ProfileSystem(commands.Cog):
                 'banner_url': 'https://i.postimg.cc/BnRZrYGv/1000240221.png',
                 'color': '#C20A0A'
             },
-            'mikey': {
-                'name': 'mikey', 
-                'emoji': '👽', 
-                'rarity': 'legendary',
-                'banner_url': 'https://i.postimg.cc/yYy3mzcz/1000240143.png',
-                'color': '#C2540A'
-            },
+                'mikey': {
+                    'name': 'Mikey',  # Change from 'mikey' to 'Mikey'
+                    'emoji': '👽', 
+                    'rarity': 'legendary',
+                    'banner_url': 'https://i.postimg.cc/yYy3mzcz/1000240143.png',
+                    'color': '#C2540A'
+                },
             'space': {
                 'name': 'Deep Space', 
                 'emoji': '🚀', 
@@ -1119,4 +1119,5 @@ class ProfileSystem(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(ProfileSystem(bot))
+
 
