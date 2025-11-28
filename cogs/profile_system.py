@@ -3,7 +3,6 @@ from discord.ext import commands
 import sys
 import os
 
-# 🚀 CRITICAL FIX: Add parent directory to path
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 if parent_dir not in sys.path:
@@ -11,10 +10,9 @@ if parent_dir not in sys.path:
 
 try:
     from storage import DataStorage
-    STORAGE_AVAILABLE = True
-except ImportError as e:
-    print(f"❌ Failed to import storage modules: {e}")
-    STORAGE_AVAILABLE = False
+except:
+    DataStorage = None
+
 
 class ProfileSystem(commands.Cog):
     def __init__(self, bot, storage):
@@ -23,215 +21,122 @@ class ProfileSystem(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        """Called when cog is loaded and ready"""
-        print(f"✅ {self.__class__.__name__} cog loaded successfully!")
+        print("✅ ProfileSystem Loaded")
+
+    # -----------------------------------------
+    # FIXED LEVEL FORMULA
+    # -----------------------------------------
+    def calculate_level(self, xp):
+        base_xp = 100
+        multiplier = 1.5
+        level = 0
+        required_xp = 0
+
+        while xp >= required_xp:
+            level += 1
+            required_xp = base_xp * (multiplier ** (level - 1))
+
+        current_level = level - 1
+
+        if current_level == 0:
+            previous_xp = 0
+            current_required_xp = base_xp
+        else:
+            previous_xp = base_xp * (multiplier ** (current_level - 1))
+            current_required_xp = base_xp * (multiplier ** current_level) - previous_xp
+
+        current_xp_in_level = xp - previous_xp
+
+        progress_percentage = int((current_xp_in_level / current_required_xp) * 100)
+
+        return {
+            'level': current_level,
+            'current_xp': int(current_xp_in_level),
+            'required_xp': int(current_required_xp),
+            'progress_percentage': progress_percentage,
+            'total_xp': xp
+        }
 
     def create_progress_bar(self, percentage, length=20):
-        """Create a visual progress bar"""
         filled = int(length * percentage / 100)
         empty = length - filled
         return '█' * filled + '░' * empty
 
-def calculate_level(self, xp):
-    """Calculate level based on XP - Improved version"""
-    base_xp = 100
-    multiplier = 1.5
-    level = 0
-    required_xp = 0
-    
-    # Calculate what level the user should be
-    while xp >= required_xp:
-        level += 1
-        required_xp = base_xp * (multiplier ** (level - 1))
-    
-    # User is at level-1 (since we overshot in the loop)
-    current_level = level - 1
-    
-    # Calculate XP for current level
-    if current_level == 0:
-        previous_xp = 0
-        current_required_xp = base_xp
-    else:
-        previous_xp = base_xp * (multiplier ** (current_level - 1))
-        current_required_xp = base_xp * (multiplier ** current_level) - previous_xp
-    
-    # Current XP in this level
-    current_xp_in_level = xp - previous_xp
-    
-    # Progress percentage
-    progress_percentage = min(100, int((current_xp_in_level / current_required_xp) * 100)) if current_required_xp > 0 else 100
-    
-    print(f"🔢 Level Calc: XP={xp}, Level={current_level}, CurrentXP={current_xp_in_level}, Required={current_required_xp}, Progress={progress_percentage}%")
-    
-    return {
-        'level': current_level,
-        'current_xp': int(current_xp_in_level),
-        'required_xp': int(current_required_xp),
-        'progress_percentage': progress_percentage,
-        'total_xp': xp
-    }
-
+    # -----------------------------------------
+    # FIXED !profile COMMAND
+    # -----------------------------------------
     @commands.command()
-    async def test(self, ctx):
-        """Simple test command"""
-        await ctx.send("✅ Profile system is working!")
+    async def profile(self, ctx, member: discord.Member = None):
 
-@commands.command()
-async def profile(self, ctx, member: discord.Member = None):
-    """Display user profile with banner"""
-    try:
-        print(f"🔍 PROFILE COMMAND TRIGGERED: {ctx.author} -> {member}")
-        await ctx.send("🔄 Loading profile...")
-        
-        if not self.storage:
-            await ctx.send("❌ Storage system not available. Please contact bot administrator.")
-            return
-            
         target = member or ctx.author
-        print(f"🎯 Target user: {target}")
-        
-        # Get user profile data
-        profile_data = self.storage.get_user_profile(target.id, ctx.guild.id)
-        print(f"📊 Profile data: {bool(profile_data)}")
-        
-        if not profile_data:
-            await ctx.send("❌ Profile not found! Start chatting to create your profile.")
+
+        if not self.storage:
+            await ctx.send("❌ Storage not loaded.")
             return
-        
-        # 🚀 FIX: Get XP data from level system
-        try:
-            # Try to get XP from level system cog
-            level_cog = self.bot.get_cog('LevelSystem')
-            if level_cog and hasattr(level_cog, 'get_user_level'):
-                user_data = level_cog.get_user_level(target.id, ctx.guild.id)
-                if user_data:
-                    total_xp = user_data.get('xp', 0)
-                    messages_sent = user_data.get('messages', 0)
-                    print(f"📈 Got XP from LevelSystem: {total_xp}")
-                else:
-                    total_xp = 0
-                    messages_sent = 0
-            else:
-                # Fallback: get from profile data
-                total_xp = profile_data.get('xp', 0)
-                messages_sent = profile_data.get('messages_sent', 0)
-                print(f"📈 Using profile XP: {total_xp}")
-        except Exception as e:
-            print(f"⚠️ Level system error: {e}")
-            total_xp = profile_data.get('xp', 0)
-            messages_sent = profile_data.get('messages_sent', 0)
-        
-        # Get banner information
-        banner_id = profile_data.get('banner', 'assassin')
-        print(f"🎨 Banner ID: {banner_id}")
-        
-        # Try to import banner system to get banner info
-        try:
-            # Get the banner cog instance
-            banner_cog = self.bot.get_cog('BannerSystem')
-            print(f"🔧 Banner cog: {banner_cog}")
-            
-            if banner_cog:
-                banner_info = banner_cog.available_banners.get(banner_id, banner_cog.available_banners['assassin'])
-                banner_name = banner_info['name']
-                banner_emoji = banner_info['emoji']
-                banner_color = banner_info.get('color', '#7289DA')
-                banner_url = banner_info.get('banner_url')
-                print(f"🎨 Banner info: {banner_name}")
-            else:
-                banner_name = "Assassin"
-                banner_emoji = "🗡️"
-                banner_color = "#7289DA"
-                banner_url = None
-                print("⚠️ Using default banner info")
-        except Exception as e:
-            print(f"❌ Banner error: {e}")
-            banner_name = "Assassin"
-            banner_emoji = "🗡️"
-            banner_color = "#7289DA"
-            banner_url = None
-        
-        # Calculate level and progress
-        print(f"📈 Total XP: {total_xp}")
-        
+
+        profile_data = self.storage.get_user_profile(target.id, ctx.guild.id)
+
+        if not profile_data:
+            await ctx.send("❌ No profile data found.")
+            return
+
+        # -------------------------------------------------------
+        # ALWAYS get XP & messages from LEVEL SYSTEM JSON
+        # -------------------------------------------------------
+        level_cog = self.bot.get_cog("LevelSystem")
+
+        guild_id = str(ctx.guild.id)
+        user_id = str(target.id)
+
+        if level_cog and hasattr(level_cog, "user_data"):
+            total_xp = level_cog.user_data.get(guild_id, {}) \
+                .get(user_id, {}).get("xp", 0)
+
+            messages_sent = level_cog.user_data.get(guild_id, {}) \
+                .get(user_id, {}).get("messages", 0)
+        else:
+            total_xp = 0
+            messages_sent = 0
+
+        # calculate level
         level_info = self.calculate_level(total_xp)
-        current_level = level_info['level']
-        current_xp = level_info['current_xp']
-        required_xp = level_info['required_xp']
-        progress_percentage = level_info['progress_percentage']
-        
-        print(f"🎯 Level: {current_level}, Progress: {progress_percentage}%")
-        
-        # Create progress bar
-        progress_bar = self.create_progress_bar(progress_percentage)
-        
-        # Create embed
-        embed_color = discord.Color(int(banner_color.replace('#', ''), 16)) if banner_color else discord.Color.blue()
-        
+
+        banner = profile_data.get("banner", "assassin")
+
+        progress_bar = self.create_progress_bar(level_info["progress_percentage"])
+
         embed = discord.Embed(
-            title=f"{banner_emoji} {target.display_name}'s Profile",
-            color=embed_color
+            title=f"{target.display_name}'s Profile",
+            color=discord.Color.blue()
         )
-        
-        # Add banner image if available
-        if banner_url:
-            embed.set_image(url=banner_url)
-            print("🖼️ Banner image set")
-        
-        # Add profile fields
+
         embed.add_field(
-            name="🎯 Level & XP",
-            value=f"**Level {current_level}**\n{progress_bar}\n{current_xp}/{required_xp} XP ({progress_percentage}%)",
-            inline=True
-        )
-        
-        embed.add_field(
-            name="🎨 Banner",
-            value=f"{banner_emoji} **{banner_name}**",
-            inline=True
-        )
-        
-        # Add other profile stats
-        join_date = profile_data.get('join_date', 'Unknown')
-        reputation = profile_data.get('reputation', 0)
-        
-        embed.add_field(
-            name="📊 Stats",
-            value=f"**Messages:** {messages_sent:,}\n**Reputation:** {reputation}\n**Joined:** {join_date}",
+            name="Level",
+            value=(
+                f"**Level {level_info['level']}**\n"
+                f"{progress_bar}\n"
+                f"{level_info['current_xp']}/{level_info['required_xp']} XP"
+            ),
             inline=False
         )
-        
-        # Add achievements if available
-        try:
-            achievement_cog = self.bot.get_cog('AchievementSystem')
-            if achievement_cog:
-                user_achievements = self.storage.get_achievements(target.id, ctx.guild.id)
-                if user_achievements:
-                    completed = len([a for a in user_achievements if a.get('completed', False)])
-                    embed.add_field(
-                        name="🏆 Achievements",
-                        value=f"**{completed}/{len(user_achievements)}** completed",
-                        inline=True
-                    )
-        except:
-            pass
-        
-        # Set thumbnail as user avatar
-        embed.set_thumbnail(url=target.display_avatar.url)
-        
-        # Add footer with banner info
-        embed.set_footer(text=f"Use !banners to see available banners | !setbanner to change")
-        
-        print("✅ Sending profile embed...")
-        await ctx.send(embed=embed)
-        print("✅ Profile sent successfully!")
-        
-    except Exception as e:
-        print(f"❌ PROFILE COMMAND ERROR: {e}")
-        import traceback
-        traceback.print_exc()
-        await ctx.send(f"❌ Error displaying profile: {e}")
 
+        embed.add_field(
+            name="Messages",
+            value=f"{messages_sent:,}"
+        )
+
+        embed.set_thumbnail(url=target.display_avatar.url)
+
+        await ctx.send(embed=embed)
+
+
+async def setup(bot):
+    try:
+        storage = DataStorage()
+        await bot.add_cog(ProfileSystem(bot, storage))
+    except:
+        await bot.add_cog(ProfileSystem(bot, None))
+        
     @commands.command()
     async def setbio(self, ctx, *, bio: str = None):
         """Set your profile biography"""
@@ -386,5 +291,6 @@ async def setup(bot):
         print(f"❌ Failed to load ProfileSystem: {e}")
         # Fallback without storage
         await bot.add_cog(ProfileSystem(bot, None))
+
 
 
