@@ -5,7 +5,7 @@ import os  # ADD THIS IMPORT AT THE TOP
 
 # ===== BOT CORE SETTINGS =====
 # Replace with your actual bot token
-BOT_TOKEN = "MTMxNTY2NDcwMjMxOTM2MjA2OA.G1Qy0x.3G5_vzYU4FBWle7np52MRsvlU7CgmDGGb5OjZo"
+BOT_TOKEN = "MTMxNTY2NDcwMjMxOTM2MjA2OA.GUAFp1.SAY43ZUOjo4UzWi6es3vrJeMyy6NMH4qM4Gzag"
 
 PREFIX = "!"
 DATABASE_URL = "sqlite:///merlin_data.db"
@@ -50,17 +50,32 @@ LEVEL_SETTINGS = {
 
 # ===== AUTO-REPLY SYSTEM =====
 AUTO_REPLY_SETTINGS = {
-    "chance": 0.3,  # 30% chance to auto-reply
-    "cooldown_seconds": 300  # 5 minutes between auto-replies per user
+    "chance": 1.0,  # 30% chance to auto-reply
+    "cooldown_seconds": 0  # 5 minutes between auto-replies per user
 }
 
 AUTO_REPLIES = {
-    "hello": ["👋 Hey there!", "Hello!", "Hi there!"],
-    "hi": ["👋 Hello!", "Hi!", "Hey!"],
-    "bot": ["🤖 Yes, I'm a bot!", "Beep boop!"],
-    "merlin": ["🧙 That's me!", "Merlin at your service!"],
-    "thanks": ["You're welcome!", "No problem! 😊"],
-    "good bot": ["❤️ Thanks!", "Beep boop 💖"]
+
+    "merlin": ["That's me!", "Merlin at your service!"],
+    "thanks": ["You're welcome!", "No problem!"],
+    "good bot": ["Thanks! bro"],
+    "fuck": ["language!"],
+    "fuk": ["language!"],
+    "fucking": ["language!"],
+    "fcuk": ["language!"],
+    "fak": ["language!"],
+    "fucker": ["language!"],
+    "fuker": ["language!"],
+    "nigga": ["you racist bitch!"],
+    "niga": ["you racist bitch!"],
+    "nigger": ["you racist bitch!"],
+    "niggas": ["you racist bitch!"],
+    "nig": ["you racist bitch!"],
+    "-3 bump": ["go away gay"],
+    "-1 bump": ["go away gay"],
+    "-4 bump": ["go away gay"],
+    "-5 bump": ["go away gay"],
+    
 }
 
 # ===== COG CONFIGURATION =====
