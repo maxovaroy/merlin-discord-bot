@@ -5,7 +5,7 @@ import os  # ADD THIS IMPORT AT THE TOP
 
 # ===== BOT CORE SETTINGS =====
 # Replace with your actual bot token
-BOT_TOKEN = "MTMxNTY2NDcwMjMxOTM2MjA2OA.GUAFp1.SAY43ZUOjo4UzWi6es3vrJeMyy6NMH4qM4Gzag"
+BOT_TOKEN = "BOT.TOKEN"
 
 PREFIX = "!"
 DATABASE_URL = "sqlite:///merlin_data.db"
@@ -75,6 +75,8 @@ AUTO_REPLIES = {
     "-1 bump": ["go away gay"],
     "-4 bump": ["go away gay"],
     "-5 bump": ["go away gay"],
+    "alex": ["gay jew"],
+    "flip": ["rizzler"],
     
 }
 
