@@ -8,6 +8,29 @@ class NameTroll(commands.Cog):
         self.bot = bot
         self.name_responses = self.load_name_responses()
 
+        # Map a tracked name to a Discord user ID manually
+        self.name_mentions = {
+            "max": 717689371293384766,
+            "alex": 1209165207784525837,
+            "alyssa": 1326313175930634250,
+            "flip": 1004839468865433601,
+            "ava": 1206101095667998751,
+            "una": 574005462534586379,
+            "shad": 1237355589701472279,
+            "intre": 1312424830213165086,
+            "kartik": 1377607512081170502,
+            "iron": 1351252842366763029,
+            "blaze": 1226831809866891345,
+            "xil": 989850262120325150,
+            "bun": 1235188867997634645,
+            "laspard": 1379043538955927685,
+            "candy": 1128157772492574822,
+        }
+
+        # Create variants for each name
+        self.name_variants = self.create_name_variants(self.name_responses)
+
+
     def load_name_responses(self):
         """Load name-based troll responses"""
         return {
@@ -124,87 +147,89 @@ class NameTroll(commands.Cog):
                 "he aint from turkey",
                 "he dont have crypto!"
             ],
-            "-2 bump": [
-                "go away",
-                "you gay go away",
-                "i will call diddy so you better go away",
-                "+1 bump",
-                "+10000 bump, you gay",
-                "shush! gay"
-            ],
-            # Add more names here following the same format
         }
+
+    def create_name_variants(self, names_dict):
+        """Create simple variants for each name"""
+        variants = {}
+        for name in names_dict:
+            lower = name.lower()
+            variants[name] = {
+                lower,                   # lowercase
+                lower[:3],               # first 3 letters
+                lower[:4],               # first 4 letters
+                lower.replace(" ", ""),  # no spaces
+                lower + "y",             # adding 'y'
+                lower + "ie",            # adding 'ie'
+                lower.capitalize(),      # capitalized
+            }
+        return variants
+
+    def get_manual_mentions(self, message):
+        """Return set of names that were manually mentioned via mapping"""
+        mentioned_names = set()
+        for name, user_id in self.name_mentions.items():
+            for mention in message.mentions:
+                if mention.id == user_id:
+                    mentioned_names.add(name)
+        return mentioned_names
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        """Check for names in messages and troll accordingly"""
         if message.author.bot:
             return
-        
-        content = message.content.lower()
-        
-        # Debug: Print the message to see what's being received
-        print(f"📨 Message received: {content}")
-        
-        # Check for names in the message (more flexible matching)
-        for name, responses in self.name_responses.items():
-            # Check if name appears as a separate word in the message
-            if f" {name} " in f" {content} " or content.startswith(name) or content.endswith(name):
-                # 80% chance to reply when a name is mentioned (increased for testing)
-                if random.random() < 0.99:  # Increased chance for testing
-                    response = random.choice(responses)
-                    print(f"🎯 Name '{name}' detected! Replying: {response}")
-                    await message.reply(response)
-                    break  # Only reply to one name per message
 
+        content = message.content.lower()
+        manually_mentioned_names = self.get_manual_mentions(message)
+        detected_name = None
+
+        # Check text variants first
+        for name, variants in self.name_variants.items():
+            for variant in variants:
+                if re.search(rf"\b{re.escape(variant)}\b", content):
+                    detected_name = name
+                    print(f"🎯 DEBUG - Name variant '{variant}' detected in message: {content}")
+                    break
+            if detected_name:
+                break
+
+        # If no variant detected, check manual mentions
+        if not detected_name:
+            for name in manually_mentioned_names:
+                detected_name = name
+                print(f"📌 DEBUG - @{name} manually mentioned in message: {content}")
+                break
+
+        # Send response if detected
+        if detected_name:
+            response = random.choice(self.name_responses[detected_name])
+            await message.reply(response)
+            print(f"✅ DEBUG - Replied to {message.author} for name '{detected_name}'")
+
+    # Command group for management
     @commands.group(name="nametroll", invoke_without_command=True)
     async def nametroll(self, ctx):
-        """Manage name-based trolling"""
         embed = discord.Embed(
             title="🎭 Name Troll System",
             description="Automatically troll when specific names are mentioned!",
             color=discord.Color.purple()
         )
-        
         embed.add_field(
-            name="Current Tracked Names",
+            name="Tracked Names",
             value="\n".join([f"• **{name.capitalize()}**" for name in self.name_responses.keys()]),
             inline=False
         )
-        
-        embed.add_field(
-            name="Commands",
-            value=(
-                "`!nametroll list` - Show all names and responses\n"
-                "`!nametroll add <name> <response>` - Add new name response\n"
-                "`!nametroll remove <name>` - Remove a name\n"
-                "`!nametroll responses <name>` - See responses for a name\n"
-                "`!nametroll test <name>` - Test if name detection works\n"
-            ),
-            inline=False
-        )
-        
         await ctx.send(embed=embed)
 
     @nametroll.command(name="list")
     async def nametroll_list(self, ctx):
-        """List all tracked names"""
-        if not self.name_responses:
-            await ctx.send("❌ No names are being tracked yet!")
-            return
-        
-        embed = discord.Embed(
-            title="📋 Tracked Names",
-            color=discord.Color.blue()
-        )
-        
+        embed = discord.Embed(title="📋 Tracked Names", color=discord.Color.blue())
         for name, responses in self.name_responses.items():
             embed.add_field(
                 name=f"🎯 {name.capitalize()}",
-                value=f"{len(responses)} responses\n`!nametroll responses {name}` to view",
+                value=f"{len(responses)} responses",
                 inline=True
             )
-        
         await ctx.send(embed=embed)
 
     @nametroll.command(name="test")
@@ -229,49 +254,34 @@ class NameTroll(commands.Cog):
     @nametroll.command(name="add")
     @commands.has_permissions(administrator=True)
     async def nametroll_add(self, ctx, name: str, *, response: str):
-        """Add a new name response (Admin only)"""
         name = name.lower()
-        
         if name not in self.name_responses:
             self.name_responses[name] = []
-        
         self.name_responses[name].append(response)
+        # Update variants dynamically
+        self.name_variants[name] = {name, name + "y", name + "ie", name.capitalize()}
         await ctx.send(f"✅ Added response for **{name}**: \"{response}\"")
 
     @nametroll.command(name="remove")
     @commands.has_permissions(administrator=True)
     async def nametroll_remove(self, ctx, name: str):
-        """Remove a name from tracking (Admin only)"""
         name = name.lower()
-        
         if name in self.name_responses:
             del self.name_responses[name]
+            self.name_variants.pop(name, None)
             await ctx.send(f"✅ Removed **{name}** from tracking")
         else:
             await ctx.send(f"❌ **{name}** is not being tracked")
 
     @nametroll.command(name="responses")
     async def nametroll_responses(self, ctx, name: str):
-        """View all responses for a specific name"""
         name = name.lower()
-        
         if name not in self.name_responses:
             await ctx.send(f"❌ **{name}** is not being tracked")
             return
-        
-        responses = self.name_responses[name]
-        embed = discord.Embed(
-            title=f"🎭 Responses for {name.capitalize()}",
-            color=discord.Color.green()
-        )
-        
-        for i, response in enumerate(responses, 1):
-            embed.add_field(
-                name=f"Response #{i}",
-                value=response,
-                inline=False
-            )
-        
+        embed = discord.Embed(title=f"🎭 Responses for {name.capitalize()}", color=discord.Color.green())
+        for i, response in enumerate(self.name_responses[name], 1):
+            embed.add_field(name=f"Response #{i}", value=response, inline=False)
         await ctx.send(embed=embed)
 
     @nametroll.command(name="edit")
@@ -302,4 +312,3 @@ class NameTroll(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(NameTroll(bot))
-
