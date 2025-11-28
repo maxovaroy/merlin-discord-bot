@@ -6,13 +6,22 @@ from discord.ext import commands
 import os
 import sys
 import asyncio
+from datetime import datetime
 
-# Import config - FIXED for your config structure
+# Import config and database
 try:
     import config
     print("✅ Config imported successfully!")
 except ImportError as e:
     print(f"❌ Failed to import config: {e}")
+    sys.exit(1)
+
+try:
+    from database import db
+    print("✅ Database imported successfully!")
+except ImportError as e:
+    print(f"❌ Failed to import database: {e}")
+    print("💡 Make sure you have database.py in the same directory")
     sys.exit(1)
 
 class MerlinBot(commands.Bot):
@@ -55,6 +64,28 @@ class MerlinBot(commands.Bot):
         await self.change_presence(activity=activity)
         
         print("🔧 Bot is fully operational!\n")
+    
+    async def on_message(self, message):
+        """Handle messages for XP and tracking"""
+        if message.author.bot:
+            return await self.process_commands(message)
+        
+        # Handle user data
+        user_data = db.get_user(message.author.id)
+        if not user_data:
+            joined_date = message.author.joined_at.isoformat() if message.author.joined_at else datetime.now().isoformat()
+            db.create_user(message.author.id, str(message.author), joined_date)
+            print(f"📝 Created new user record for {message.author}")
+        else:
+            # Update username if changed
+            if user_data['username'] != str(message.author):
+                db.update_user(message.author.id, username=str(message.author))
+        
+        # Increment messages and handle XP
+        db.increment_messages(message.author.id)
+        
+        # Process commands
+        await self.process_commands(message)
 
 async def main():
     """Main function to start the bot"""
