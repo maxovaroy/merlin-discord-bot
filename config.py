@@ -27,16 +27,16 @@ AVAILABLE_BANNERS = {
 # ===== SOCIAL SYSTEM SETTINGS =====
 MARRIAGE_SETTINGS = {
     "cooldown_days": 7,
-    "max_marriages": 1
+    "max_marriages": 4
 }
 
 REPUTATION_SETTINGS = {
-    "cooldown_hours": 24,
-    "daily_limit": 5
+    "cooldown_hours": 1,
+    "daily_limit": 10
 }
 
 FRIEND_SETTINGS = {
-    "max_friends": 50
+    "max_friends": 500
 }
 
 # ===== LEVEL SYSTEM =====
@@ -44,14 +44,14 @@ LEVEL_SETTINGS = {
     "base_xp": 100,
     "xp_multiplier": 1.5,
     "message_xp_range": (15, 25),
-    "cooldown_seconds": 60,
-    "max_level": 100
+    "cooldown_seconds": 3,
+    "max_level": 1000
 }
 
 # ===== AUTO-REPLY SYSTEM =====
 AUTO_REPLY_SETTINGS = {
     "chance": 1.0,  # 30% chance to auto-reply
-    "cooldown_seconds": 0  # 5 minutes between auto-replies per user
+    "cooldown_seconds": 60  # 5 minutes between auto-replies per user
 }
 
 AUTO_REPLIES = {
@@ -77,6 +77,15 @@ AUTO_REPLIES = {
     "-5 bump": ["go away gay"],
     "alex": ["gay jew"],
     "flip": ["rizzler"],
+    "jew": ["did anyone called alex?? <@1209165207784525837>"],
+    "alyssa": ["will cut your dick"],
+    "shut up": ["NO!"],
+    "<@574005462534586379>": ["dont tag him"],
+    "<@717689371293384766>": ["dont tag my master"],
+    "<@1209165207784525837>": ["he gay!"],
+    "<@1326313175930634250>": ["nooooooo brooooooo! she cuts dick"],
+    "help merlin": ["show can i help?"],
+    "gold": ["begger"],
     
 }
 
