@@ -32,31 +32,44 @@ class ProfileSystem(commands.Cog):
         empty = length - filled
         return '█' * filled + '░' * empty
 
-    def calculate_level(self, xp):
-        """Calculate level based on XP"""
-        base_xp = 100
-        multiplier = 1.5
-        level = 0
-        required_xp = 0
-        
-        while xp >= required_xp:
-            level += 1
-            required_xp = base_xp * (multiplier ** (level - 1))
-        
-        # Adjust for current level
-        previous_xp = base_xp * (multiplier ** (level - 2)) if level > 1 else 0
-        current_xp = xp - previous_xp
-        current_required_xp = required_xp - previous_xp
-        
-        progress_percentage = min(100, int((current_xp / current_required_xp) * 100)) if current_required_xp > 0 else 100
-        
-        return {
-            'level': level - 1,
-            'current_xp': int(current_xp),
-            'required_xp': int(current_required_xp),
-            'progress_percentage': progress_percentage,
-            'total_xp': xp
-        }
+def calculate_level(self, xp):
+    """Calculate level based on XP - Improved version"""
+    base_xp = 100
+    multiplier = 1.5
+    level = 0
+    required_xp = 0
+    
+    # Calculate what level the user should be
+    while xp >= required_xp:
+        level += 1
+        required_xp = base_xp * (multiplier ** (level - 1))
+    
+    # User is at level-1 (since we overshot in the loop)
+    current_level = level - 1
+    
+    # Calculate XP for current level
+    if current_level == 0:
+        previous_xp = 0
+        current_required_xp = base_xp
+    else:
+        previous_xp = base_xp * (multiplier ** (current_level - 1))
+        current_required_xp = base_xp * (multiplier ** current_level) - previous_xp
+    
+    # Current XP in this level
+    current_xp_in_level = xp - previous_xp
+    
+    # Progress percentage
+    progress_percentage = min(100, int((current_xp_in_level / current_required_xp) * 100)) if current_required_xp > 0 else 100
+    
+    print(f"🔢 Level Calc: XP={xp}, Level={current_level}, CurrentXP={current_xp_in_level}, Required={current_required_xp}, Progress={progress_percentage}%")
+    
+    return {
+        'level': current_level,
+        'current_xp': int(current_xp_in_level),
+        'required_xp': int(current_required_xp),
+        'progress_percentage': progress_percentage,
+        'total_xp': xp
+    }
 
     @commands.command()
     async def test(self, ctx):
@@ -373,4 +386,5 @@ async def setup(bot):
         print(f"❌ Failed to load ProfileSystem: {e}")
         # Fallback without storage
         await bot.add_cog(ProfileSystem(bot, None))
+
 
