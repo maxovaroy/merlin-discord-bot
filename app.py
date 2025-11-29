@@ -7,6 +7,7 @@ import os
 import sys
 import asyncio
 from datetime import datetime
+from discordLevelingSystem import DiscordLevelingSystem
 
 # Import config
 try:
@@ -26,6 +27,9 @@ class MerlinBot(commands.Bot):
         )
         # Temporary in-memory user storage
         self.user_data = {}
+
+        self.levelsystem = DiscordLevelingSystem(rate=1, per=60.0)
+        self.levelsystem.connect_to_database_file("./leveling.db")
 
     async def setup_hook(self):
         """Setup bot when starting"""
@@ -60,13 +64,14 @@ class MerlinBot(commands.Bot):
         print("🔧 Bot is fully operational!\n")
 
     async def on_message(self, message):
-        """Handle messages for XP and tracking"""
         if message.author.bot:
             return await self.process_commands(message)
-
-        # Handle user data in-memory
+    
+        # Give XP using SQLite
+        await self.levelsystem.award_xp(amount=[15, 25], message=message)
+    
+        # Still keep message counter (no need to delete)
         user_id = message.author.id
-
         if user_id not in self.user_data:
             joined_date = message.author.joined_at.isoformat() if message.author.joined_at else datetime.now().isoformat()
             self.user_data[user_id] = {
@@ -74,17 +79,10 @@ class MerlinBot(commands.Bot):
                 "joined_at": joined_date,
                 "messages": 0
             }
-            print(f"📝 Created new user record for {message.author}")
-        else:
-            # Update username if changed
-            if self.user_data[user_id]["username"] != str(message.author):
-                self.user_data[user_id]["username"] = str(message.author)
-
-        # Increment messages
         self.user_data[user_id]["messages"] += 1
-
-        # Process commands
+    
         await self.process_commands(message)
+
 
 async def main():
     """Main function to start the bot"""
@@ -130,3 +128,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
