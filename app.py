@@ -7,10 +7,9 @@ import os
 import sys
 import asyncio
 from datetime import datetime
-from database import init_db
 
+from discordLevelingSystem import DiscordLevelingSystem
 
-from discordLevelingSystem import DiscordLevelingSystem   # <-- added
 
 # Import config
 try:
@@ -125,4 +124,5 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
