@@ -50,14 +50,14 @@ LEVEL_SETTINGS = {
 
 # ===== AUTO-REPLY SYSTEM =====
 AUTO_REPLY_SETTINGS = {
-    "chance": 1.0,  # 30% chance to auto-reply
+    "chance": 0.5,  # 30% chance to auto-reply
     "cooldown_seconds": 60  # 5 minutes between auto-replies per user
 }
 
 AUTO_REPLIES = {
 
     "merlin": ["That's me!", "Merlin at your service!"],
-    "thanks": ["You're welcome!", "No problem!"],
+    "thanks merlin": ["You're welcome!", "No problem!"],
     "good bot": ["Thanks! bro"],
     "fuck": ["language!"],
     "fuk": ["language!"],
@@ -79,13 +79,15 @@ AUTO_REPLIES = {
     "flip": ["rizzler"],
     "jew": ["did anyone called alex?? <@1209165207784525837>"],
     "alyssa": ["will cut your dick"],
-    "shut up": ["NO!"],
+    "shut up": ["https://cdn.discordapp.com/attachments/874749642523435020/1440751429085298688/G5-6JLnakAAevdJ.gif"],
     "<@574005462534586379>": ["dont tag him"],
     "<@717689371293384766>": ["dont tag my master"],
     "<@1209165207784525837>": ["he gay!"],
     "<@1326313175930634250>": ["nooooooo brooooooo! she cuts dick"],
     "help merlin": ["show can i help?"],
     "gold": ["begger"],
+    "wtf": ["https://tenor.com/view/wtf-joe-pesci-pesci-what-gif-10718026964868693743"],
+    "sad": ["https://tenor.com/view/dave-chapelle-the-show-rick-gif-24862254"]
     
 }
 
