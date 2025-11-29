@@ -34,7 +34,7 @@ class MerlinBot(commands.Bot):
         # ADD LEVELING SYSTEM HERE
         # -----------------------------
         self.levelsystem = DiscordLevelingSystem(rate=1, per=60.0)
-        self.levelsystem.connect_to_database_file("./leveling.db")
+        self.levelsystem.connect_to_database_file("./leveling.db", create=True)
 
     async def setup_hook(self):
         print("🚀 Starting Merlin Discord Bot...")
@@ -124,5 +124,6 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
