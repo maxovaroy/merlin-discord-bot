@@ -2,8 +2,7 @@ import discord
 from discord.ext import commands
 import sys
 import os
-from database import get_user
-
+import asyncio
 
 # Add parent directory to sys.path (for storage import)
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -33,20 +32,20 @@ class ProfileSystem(commands.Cog):
     # -----------------------------------------
     # LEVEL CALCULATION & PROGRESS BAR
     # -----------------------------------------
-    def calculate_level(self, xp: int):
+    def calculate_level(self, total_xp: int):
         base_xp = 100
         multiplier = 1.5
         level = 0
         required_xp = 0
 
-        while xp >= required_xp:
+        while total_xp >= required_xp:
             level += 1
             required_xp = base_xp * (multiplier ** (level - 1))
 
         current_level = level - 1
         previous_xp = base_xp * (multiplier ** (current_level - 1)) if current_level > 0 else 0
         current_required_xp = (base_xp * (multiplier ** current_level)) - previous_xp if current_level > 0 else base_xp
-        current_xp_in_level = xp - previous_xp
+        current_xp_in_level = total_xp - previous_xp
         progress_percentage = min(100, int((current_xp_in_level / current_required_xp) * 100)) if current_required_xp > 0 else 100
 
         return {
@@ -54,7 +53,7 @@ class ProfileSystem(commands.Cog):
             "current_xp": int(current_xp_in_level),
             "required_xp": int(current_required_xp),
             "progress_percentage": progress_percentage,
-            "total_xp": xp
+            "total_xp": total_xp
         }
 
     def create_progress_bar(self, percentage: int, length: int = 20):
@@ -79,16 +78,10 @@ class ProfileSystem(commands.Cog):
             await ctx.send("❌ Profile not found. Start chatting to create your profile!")
             return
 
-        db_user = await get_user(target.id)
-        
-        if db_user:
-            total_xp = db_user[0]
-            level = db_user[1]
-            messages_sent = db_user[2]
-        else:
-            total_xp = 0
-            level = 0
-            messages_sent = 0
+        # XP / Level / Messages
+        user_levels = self.storage.user_levels.get(str(ctx.guild.id), {}).get(str(target.id), {})
+        total_xp = user_levels.get("xp", 0)
+        messages_sent = user_levels.get("messages", 0)
 
         level_info = self.calculate_level(total_xp)
         progress_bar = self.create_progress_bar(level_info["progress_percentage"])
@@ -131,8 +124,8 @@ class ProfileSystem(commands.Cog):
         )
 
         # Additional stats
-        reputation = profile_data.get("reputation", 0)
-        join_date = profile_data.get("join_date", "Unknown")
+        reputation = self.storage.get_reputation(target.id, ctx.guild.id)
+        join_date = profile_data.get("created_at", "Unknown")
         embed.add_field(
             name="📊 Stats",
             value=f"**Messages:** {messages_sent:,}\n**Reputation:** {reputation}\n**Joined:** {join_date}",
@@ -252,4 +245,3 @@ async def setup(bot):
     except Exception as e:
         print(f"❌ Failed to load ProfileSystem: {e}")
         await bot.add_cog(ProfileSystem(bot, None))
-
