@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 import random
-from config import Config
+import config
 import asyncio
 from datetime import datetime
 
