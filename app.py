@@ -10,7 +10,6 @@ from datetime import datetime
 
 from discordLevelingSystem import DiscordLevelingSystem
 
-
 # Import config
 try:
     import config
@@ -30,13 +29,13 @@ class MerlinBot(commands.Bot):
 
         self.user_data = {}
 
-        # -----------------------------
-        # ADD LEVELING SYSTEM HERE
-        # -----------------------------
+        # Create leveling system instance (do NOT connect DB here)
         self.levelsystem = DiscordLevelingSystem(rate=1, per=60.0)
-        self.levelsystem.connect_to_database_file("./leveling.db")
 
     async def setup_hook(self):
+        # Connect leveling system DB here (async)
+        await self.levelsystem.connect_to_database_file_async("./leveling.db")
+
         print("🚀 Starting Merlin Discord Bot...")
         print("📦 Loading cogs...")
 
@@ -91,6 +90,7 @@ class MerlinBot(commands.Bot):
 
         await self.process_commands(message)
 
+
 async def main():
     print("=" * 50)
     print("🤖 Merlin Discord Bot - Starting Up...")
@@ -122,9 +122,6 @@ async def main():
     except Exception as e:
         print(f"❌ Unexpected error: {e}")
 
+
 if __name__ == "__main__":
     asyncio.run(main())
-
-
-
-
