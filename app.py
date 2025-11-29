@@ -1,5 +1,4 @@
 # app.py - Merlin Discord Bot
-# Copyright (c) 2024 Merlin Discord Bot. All rights reserved.
 
 import discord
 from discord.ext import commands
@@ -8,7 +7,7 @@ import sys
 import asyncio
 from datetime import datetime
 
-from discordLevelingSystem import DiscordLevelingSystem
+from discordLevelingSystem import DiscordLevelingSystem, errors as leveling_errors
 
 # Import config
 try:
@@ -29,12 +28,17 @@ class MerlinBot(commands.Bot):
 
         self.user_data = {}
 
-        # Create leveling system instance (do NOT connect DB here)
+        # Create leveling system instance
         self.levelsystem = DiscordLevelingSystem(rate=1, per=60.0)
 
     async def setup_hook(self):
-        # Connect leveling system DB here (async)
-        await self.levelsystem.connect_to_database_file_async("./leveling.db")
+        # Connect to leveling DB (synchronous call wrapped in executor)
+        loop = asyncio.get_running_loop()
+        try:
+            await loop.run_in_executor(None, self.levelsystem.connect_to_database_file, "./leveling.db")
+            print("✅ Leveling system database connected!")
+        except leveling_errors.ConnectionFailure:
+            print("❌ Failed to connect to leveling database!")
 
         print("🚀 Starting Merlin Discord Bot...")
         print("📦 Loading cogs...")
