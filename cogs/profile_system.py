@@ -2,6 +2,8 @@ import discord
 from discord.ext import commands
 import sys
 import os
+from database import get_user
+
 
 # Add parent directory to sys.path (for storage import)
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -77,15 +79,16 @@ class ProfileSystem(commands.Cog):
             await ctx.send("❌ Profile not found. Start chatting to create your profile!")
             return
 
-        # Get XP & messages from LevelSystem Cog if available
-        total_xp = profile_data.get("xp", 0)
-        messages_sent = profile_data.get("messages_sent", 0)
-        level_cog = self.bot.get_cog("LevelSystem")
-        if level_cog and hasattr(level_cog, "user_data"):
-            guild_id = str(ctx.guild.id)
-            user_id = str(target.id)
-            total_xp = level_cog.user_data.get(guild_id, {}).get(user_id, {}).get("xp", total_xp)
-            messages_sent = level_cog.user_data.get(guild_id, {}).get(user_id, {}).get("messages", messages_sent)
+        db_user = await get_user(target.id)
+        
+        if db_user:
+            total_xp = db_user[0]
+            level = db_user[1]
+            messages_sent = db_user[2]
+        else:
+            total_xp = 0
+            level = 0
+            messages_sent = 0
 
         level_info = self.calculate_level(total_xp)
         progress_bar = self.create_progress_bar(level_info["progress_percentage"])
@@ -249,3 +252,4 @@ async def setup(bot):
     except Exception as e:
         print(f"❌ Failed to load ProfileSystem: {e}")
         await bot.add_cog(ProfileSystem(bot, None))
+
