@@ -38,7 +38,61 @@ except ImportError as e:
     leveling_errors = None
 
 # -----------------------------
-# Bot class
+# Banner System Cog
+# -----------------------------
+class BannerSystem(commands.Cog):
+    def __init__(self, bot, storage=None):
+        self.bot = bot
+        self.storage = storage
+
+        # 🎨 BANNERS
+        self.available_banners = {
+            'assassin': {'name': 'Assassin', 'emoji': '🗡️', 'rarity': 'common', 'banner_url': 'https://i.postimg.cc/XvP8qJZN/1000240088.png', 'color': '#7289DA'},
+            'aura_farmer': {'name': 'Aura Farmer', 'emoji': '🌟', 'rarity': 'rare', 'banner_url': 'https://i.postimg.cc/fbSdHvLx/1000240087.png', 'color': '#FFD700'},
+            'unholy': {'name': 'Unholy', 'emoji': '☠️', 'rarity': 'common', 'banner_url': 'https://i.postimg.cc/mk8LQhvz/1000240136.png', 'color': '#1E90FF'},
+            'guardian': {'name': 'Guardian', 'emoji': '🛡️', 'rarity': 'common', 'banner_url': 'https://i.postimg.cc/rp1L1K4N/1000240138.png', 'color': '#1E90FF'},
+            'spartan': {'name': 'Spartan', 'emoji': '⚔️', 'rarity': 'common', 'banner_url': 'https://i.postimg.cc/XqXhzJZy/1000240140.png', 'color': '#1E90FF'},
+            'berserker': {'name': 'Berserker', 'emoji': '⚡', 'rarity': 'rare', 'banner_url': 'https://i.postimg.cc/fbTvKPtF/1000240134.png', 'color': '#FFD700'},
+            'russian_ghost': {'name': 'Russian Ghost', 'emoji': '🩸', 'rarity': 'rare', 'banner_url': 'https://i.postimg.cc/5y5fLbH4/1000240210.png', 'color': '#FF08DF'},
+            'baddie': {'name': 'Baddie', 'emoji': '😈', 'rarity': 'uncommon', 'banner_url': 'https://i.postimg.cc/fyR8jvyZ/1000240227.png', 'color': '#C7C7C7'},
+            'techno': {'name': 'Techno Blade', 'emoji': '💘', 'rarity': 'legendary', 'banner_url': 'https://i.postimg.cc/QdGpjbDF/1000240218.png', 'color': '#C20A0A'},
+            'deadpool': {'name': 'Deadpool', 'emoji': '♦️', 'rarity': 'common', 'banner_url': 'https://i.postimg.cc/BnRZrYGv/1000240221.png', 'color': '#C20A0A'},
+            'mikey': {'name': 'Mikey', 'emoji': '👽', 'rarity': 'legendary', 'banner_url': 'https://i.postimg.cc/yYy3mzcz/1000240143.png', 'color': '#C2540A'},
+            'space': {'name': 'Deep Space', 'emoji': '🚀', 'rarity': 'legendary', 'banner_url': 'https://i.imgur.com/3Q3fZ8p.png', 'color': '#000080'},
+            'fire': {'name': 'Inferno', 'emoji': '🔥', 'rarity': 'epic', 'banner_url': 'https://i.imgur.com/2Q4gY9q.png', 'color': '#FF4500'},
+            'ice': {'name': 'Frozen', 'emoji': '❄️', 'rarity': 'rare', 'banner_url': 'https://i.imgur.com/1Q5hX0r.png', 'color': '#00CED1'},
+            'neon': {'name': 'Neon City', 'emoji': '💡', 'rarity': 'epic', 'banner_url': 'https://i.imgur.com/0Q6jZ1s.png', 'color': '#00FF00'}
+        }
+
+    def find_banner_by_name(self, banner_name):
+        if not banner_name:
+            return None, None
+
+        name_lower = banner_name.lower().strip()
+        for bid, binfo in self.available_banners.items():
+            if bid.lower() == name_lower or binfo['name'].lower() == name_lower:
+                return bid, binfo
+
+        for bid, binfo in self.available_banners.items():
+            display_name = binfo['name'].lower().replace(' ', '').replace('_', '').replace('-', '')
+            search_name = name_lower.replace(' ', '').replace('_', '').replace('-', '')
+            if search_name in display_name or display_name in search_name:
+                return bid, binfo
+
+        return None, None
+
+    # -----------------------------
+    # Commands (simplified example)
+    # -----------------------------
+    @commands.command()
+    async def banners(self, ctx):
+        embed = discord.Embed(title="🎨 Available Banners", description="Check your banners!", color=discord.Color.purple())
+        for bid, binfo in self.available_banners.items():
+            embed.add_field(name=f"{binfo['emoji']} {binfo['name']}", value=f"Rarity: {binfo['rarity'].title()}", inline=False)
+        await ctx.send(embed=embed)
+
+# -----------------------------
+# Merlin Bot Class
 # -----------------------------
 class MerlinBot(commands.Bot):
     def __init__(self):
@@ -52,7 +106,6 @@ class MerlinBot(commands.Bot):
         self.levelsystem = DiscordLevelingSystem(rate=1, per=60.0) if DiscordLevelingSystem else None
 
     async def setup_hook(self):
-        # Connect leveling database
         if self.levelsystem:
             loop = asyncio.get_running_loop()
             try:
@@ -61,7 +114,6 @@ class MerlinBot(commands.Bot):
             except leveling_errors.ConnectionFailure:
                 print("❌ Failed to connect leveling database!")
 
-        # Load storage asynchronously
         if STORAGE:
             try:
                 await STORAGE.load_data_async()
@@ -69,58 +121,37 @@ class MerlinBot(commands.Bot):
             except Exception as e:
                 print(f"❌ Storage load failed: {e}")
 
-        # Load cogs
-        loaded = 0
-        print("🚀 Loading cogs...")
-        for cog in getattr(config, "COGS", []):
-            try:
-                await self.load_extension(cog)
-                print(f"   ✅ {cog}")
-                loaded += 1
-            except Exception as e:
-                print(f"   ❌ {cog}: {e}")
-        print(f"📊 Loaded {loaded}/{len(getattr(config, 'COGS', []))} cogs")
+        # Load BannerSystem cog
+        try:
+            await self.add_cog(BannerSystem(self, STORAGE))
+            print("✅ BannerSystem cog loaded!")
+        except Exception as e:
+            print(f"❌ Failed to load BannerSystem cog: {e}")
 
     async def on_ready(self):
-        print(f"\n🎉 {self.user} is now online!")
-        print(f"📊 Connected to {len(self.guilds)} server(s)")
-        print(f"🏓 Latency: {round(self.latency * 1000)}ms")
-
-        activity = discord.Activity(
-            type=discord.ActivityType.watching,
-            name=f"{len(self.guilds)} servers | {config.PREFIX}help"
-        )
+        print(f"\n🎉 {self.user} is online | Connected to {len(self.guilds)} guild(s)")
+        activity = discord.Activity(type=discord.ActivityType.watching, name=f"{len(self.guilds)} servers | {config.PREFIX}help")
         await self.change_presence(activity=activity)
-        print("🔧 Bot is fully operational!\n")
 
     async def on_message(self, message):
         if message.author.bot:
             return await self.process_commands(message)
 
-        # Auto-create profile
         if STORAGE:
             STORAGE.get_user_profile(message.author.id, message.guild.id)
 
-        # Award XP
         if self.levelsystem:
             await self.levelsystem.award_xp(amount=[15, 25], message=message)
 
-        # Track messages
         user_id = message.author.id
         if user_id not in self.user_data:
             joined_date = message.author.joined_at.isoformat() if message.author.joined_at else datetime.now().isoformat()
-            self.user_data[user_id] = {
-                "username": str(message.author),
-                "joined_at": joined_date,
-                "messages": 0
-            }
-            print(f"📝 Created new user record for {message.author}")
-
+            self.user_data[user_id] = {"username": str(message.author), "joined_at": joined_date, "messages": 0}
         self.user_data[user_id]["messages"] += 1
         await self.process_commands(message)
 
 # -----------------------------
-# Main entry
+# Main Entry
 # -----------------------------
 async def main():
     print("="*50)
@@ -144,154 +175,6 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
-        # 🎨 BANNER SYSTEM
-        self.available_banners = {
-            'assassin': {
-                'name': 'Assassin', 
-                'emoji': '🗡️', 
-                'rarity': 'common',
-                'banner_url': 'https://i.postimg.cc/XvP8qJZN/1000240088.png',
-                'color': '#7289DA'
-            },
-            'aura_farmer': {
-                'name': 'Aura Farmer', 
-                'emoji': '🌟', 
-                'rarity': 'rare',
-                'banner_url': 'https://i.postimg.cc/fbSdHvLx/1000240087.png',
-                'color': '#FFD700'
-            },
-            'unholy': {
-                'name': 'Unholy', 
-                'emoji': '☠️', 
-                'rarity': 'common',
-                'banner_url': 'https://i.postimg.cc/mk8LQhvz/1000240136.png',
-                'color': '#1E90FF'
-            },
-            'guardian': {
-                'name': 'Guardian', 
-                'emoji': '🛡️', 
-                'rarity': 'common',
-                'banner_url': 'https://i.postimg.cc/rp1L1K4N/1000240138.png',
-                'color': '#1E90FF'
-            },
-            'spartan': {
-                'name': 'Spartan', 
-                'emoji': '⚔️', 
-                'rarity': 'common',
-                'banner_url': 'https://i.postimg.cc/XqXhzJZy/1000240140.png',
-                'color': '#1E90FF'
-            },
-            'berserker': {
-                'name': 'Berserker', 
-                'emoji': '⚡', 
-                'rarity': 'rare',
-                'banner_url': 'https://i.postimg.cc/fbTvKPtF/1000240134.png',
-                'color': '#FFD700'
-            },
-            'russian_ghost': {
-                'name': 'Russian Ghost', 
-                'emoji': '🩸', 
-                'rarity': 'rare',
-                'banner_url': 'https://i.postimg.cc/5y5fLbH4/1000240210.png',
-                'color': '#FF08DF'
-            },
-            'baddie': {
-                'name': 'Baddie', 
-                'emoji': '😈', 
-                'rarity': 'uncommon',
-                'banner_url': 'https://i.postimg.cc/fyR8jvyZ/1000240227.png',
-                'color': '#C7C7C7'
-            },
-            'techno': {
-                'name': 'Techno Blade', 
-                'emoji': '💘', 
-                'rarity': 'legendary',
-                'banner_url': 'https://i.postimg.cc/QdGpjbDF/1000240218.png',
-                'color': '#C20A0A'
-            },
-            'deadpool': {
-                'name': 'Deadpool', 
-                'emoji': '♦️', 
-                'rarity': 'common',
-                'banner_url': 'https://i.postimg.cc/BnRZrYGv/1000240221.png',
-                'color': '#C20A0A'
-            },
-            'mikey': {
-                'name': 'Mikey', 
-                'emoji': '👽', 
-                'rarity': 'legendary',
-                'banner_url': 'https://i.postimg.cc/yYy3mzcz/1000240143.png',
-                'color': '#C2540A'
-            },
-            'space': {
-                'name': 'Deep Space', 
-                'emoji': '🚀', 
-                'rarity': 'legendary',
-                'banner_url': 'https://i.imgur.com/3Q3fZ8p.png',
-                'color': '#000080'
-            },
-            'fire': {
-                'name': 'Inferno', 
-                'emoji': '🔥', 
-                'rarity': 'epic',
-                'banner_url': 'https://i.imgur.com/2Q4gY9q.png',
-                'color': '#FF4500'
-            },
-            'ice': {
-                'name': 'Frozen', 
-                'emoji': '❄️', 
-                'rarity': 'rare',
-                'banner_url': 'https://i.imgur.com/1Q5hX0r.png',
-                'color': '#00CED1'
-            },
-            'neon': {
-                'name': 'Neon City', 
-                'emoji': '💡', 
-                'rarity': 'epic',
-                'banner_url': 'https://i.imgur.com/0Q6jZ1s.png',
-                'color': '#00FF00'
-            }
-        }
-
-    def find_banner_by_name(self, banner_name):
-        """Find banner by name (case-insensitive and flexible matching)"""
-        if not banner_name:
-            return None, None
-            
-        banner_name_lower = banner_name.lower().strip()
-        
-        # First, check exact matches
-        for banner_id, banner_info in self.available_banners.items():
-            # Exact ID match
-            if banner_id.lower() == banner_name_lower:
-                return banner_id, banner_info
-            
-            # Exact name match
-            if banner_info['name'].lower() == banner_name_lower:
-                return banner_id, banner_info
-        
-        # Then check partial matches
-        for banner_id, banner_info in self.available_banners.items():
-            banner_name_display = banner_info['name'].lower()
-            
-            # Remove spaces and special characters for better matching
-            search_term = banner_name_lower.replace(' ', '').replace('_', '').replace('-', '')
-            banner_term = banner_name_display.replace(' ', '').replace('_', '').replace('-', '')
-            
-            # Partial match in display name
-            if banner_name_lower in banner_name_display:
-                return banner_id, banner_info
-            
-            # Partial match in ID
-            if banner_name_lower in banner_id.lower():
-                return banner_id, banner_info
-            
-            # Fuzzy match without spaces
-            if search_term in banner_term or banner_term in search_term:
-                return banner_id, banner_info
-        
-        return None, None
 
     @commands.command()
     async def banners(self, ctx):
