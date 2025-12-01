@@ -1,3 +1,4 @@
+#database.py
 import aiosqlite
 
 DB_PATH = "./leveling.db"  # your SQLite database file
