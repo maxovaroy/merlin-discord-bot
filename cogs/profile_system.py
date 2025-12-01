@@ -107,7 +107,7 @@ class ProfileSystem(commands.Cog):
         # Stats
         reputation = 0
         if hasattr(self.storage, "get_reputation"):
-        reputation = self.storage.get_reputation(target.id, ctx.guild.id)
+            reputation = self.storage.get_reputation(target.id, ctx.guild.id)
         join_date = profile_data.get("created_at", str(ctx.author.created_at.date()))
         embed.add_field(
             name="📊 Stats",
@@ -211,6 +211,7 @@ async def setup(bot, storage=None):
     if storage is None:
         storage = getattr(bot, "storage", None)
     await bot.add_cog(ProfileSystem(bot, storage))
+
 
 
 
