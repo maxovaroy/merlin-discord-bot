@@ -1,6 +1,9 @@
+# profile_system.py
+
 import discord
 from discord.ext import commands
-import asyncio
+from typing import Optional
+
 
 class ProfileSystem(commands.Cog):
     """Enhanced profile system with XP, levels, banners, bio, and titles."""
@@ -11,10 +14,10 @@ class ProfileSystem(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        print(f"✅ {self.__class__.__name__} cog loaded successfully!")
+        print(f"✅ {self.__class__.__name__} loaded successfully!")
 
     # -----------------------------
-    # LEVEL CALCULATION & PROGRESS
+    # LEVEL CALCULATION
     # -----------------------------
     def calculate_level(self, total_xp: int):
         base_xp = 100
@@ -49,20 +52,18 @@ class ProfileSystem(commands.Cog):
     # PROFILE COMMAND
     # -----------------------------
     @commands.command()
-    async def profile(self, ctx, member: discord.Member = None):
+    async def profile(self, ctx, member: Optional[discord.Member] = None):
         target = member or ctx.author
 
         if not self.storage:
-            await ctx.send("❌ Storage system unavailable.")
-            return
+            return await ctx.send("❌ Storage system unavailable.")
 
-        # Fetch or create profile
+        # Fetch profile
         profile_data = self.storage.get_user_profile(target.id, ctx.guild.id)
-        if not profile_data:
-            profile_data = {}
 
-        # XP & level
-        user_levels = self.storage.user_levels.get(str(ctx.guild.id), {}).get(str(target.id), {})
+        # Fetch XP & messages
+        server_levels = self.storage.user_levels.get(str(ctx.guild.id), {})
+        user_levels = server_levels.get(str(target.id), {})
         total_xp = user_levels.get("xp", 0)
         messages_sent = user_levels.get("messages", 0)
 
@@ -78,7 +79,7 @@ class ProfileSystem(commands.Cog):
 
         banner_cog = self.bot.get_cog("BannerSystem")
         if banner_cog and hasattr(banner_cog, "available_banners"):
-            banner_info = banner_cog.available_banners.get(banner_id, None)
+            banner_info = banner_cog.available_banners.get(banner_id)
             if banner_info:
                 banner_name = banner_info.get("name", banner_name)
                 banner_emoji = banner_info.get("emoji", banner_emoji)
@@ -105,10 +106,8 @@ class ProfileSystem(commands.Cog):
         )
 
         # Stats
-        reputation = 0
-        if hasattr(self.storage, "get_reputation"):
-            reputation = self.storage.get_reputation(target.id, ctx.guild.id)
-        join_date = profile_data.get("created_at", str(ctx.author.created_at.date()))
+        reputation = self.storage.get_reputation(target.id, ctx.guild.id)
+        join_date = profile_data.get("created_at", str(target.created_at.date()))
         embed.add_field(
             name="📊 Stats",
             value=f"**Messages:** {messages_sent:,}\n**Reputation:** {reputation}\n**Joined:** {join_date}",
@@ -116,51 +115,49 @@ class ProfileSystem(commands.Cog):
         )
 
         # Achievements
-        achievement_cog = self.bot.get_cog("AchievementSystem")
-        if achievement_cog:
-            user_achievements = self.storage.get_achievements(target.id, ctx.guild.id) or []
-            completed = len([a for a in user_achievements if a.get("completed", False)])
-            embed.add_field(
-                name="🏆 Achievements",
-                value=f"**{completed}/{len(user_achievements)}** completed",
-                inline=True
-            )
+        user_achievements = self.storage.get_achievements(target.id, ctx.guild.id) or []
+        completed = len([a for a in user_achievements if a.get("unlocked_at")])
+        embed.add_field(
+            name="🏆 Achievements",
+            value=f"**{completed}/{len(user_achievements)}** completed",
+            inline=True
+        )
 
         embed.set_thumbnail(url=target.display_avatar.url)
         embed.set_footer(text="Use !banners to view banners | !setbanner to change")
         await ctx.send(embed=embed)
 
     # -----------------------------
-    # BIO & TITLE COMMANDS
+    # BIO & TITLE
     # -----------------------------
     @commands.command()
     async def setbio(self, ctx, *, bio: str = None):
         if not self.storage:
-            await ctx.send("❌ Storage unavailable.")
-            return
+            return await ctx.send("❌ Storage unavailable.")
         if not bio or len(bio) > 200:
-            await ctx.send("❌ Provide a valid bio (max 200 chars).")
-            return
+            return await ctx.send("❌ Provide a valid bio (max 200 chars).")
         self.storage.update_user_profile(ctx.author.id, ctx.guild.id, {"bio": bio})
         await ctx.send(f"✅ Bio updated to: {bio}")
 
     @commands.command()
     async def settitle(self, ctx, *, title: str = None):
         if not self.storage:
-            await ctx.send("❌ Storage unavailable.")
-            return
+            return await ctx.send("❌ Storage unavailable.")
         if not title or len(title) > 25:
-            await ctx.send("❌ Provide a valid title (max 25 chars).")
-            return
+            return await ctx.send("❌ Provide a valid title (max 25 chars).")
         self.storage.update_user_profile(ctx.author.id, ctx.guild.id, {"title": title})
         await ctx.send(f"✅ Title updated to: {title}")
 
-    # -----------------------------------------
+    # -----------------------------
     # HELP COMMAND
-    # -----------------------------------------
+    # -----------------------------
     @commands.command()
     async def profilehelp(self, ctx):
-        embed = discord.Embed(title="👤 Profile Help", description="Manage your profile!", color=discord.Color.blue())
+        embed = discord.Embed(
+            title="👤 Profile Help",
+            description="Manage your profile!",
+            color=discord.Color.blue()
+        )
         embed.add_field(
             name="Commands",
             value=(
@@ -175,9 +172,9 @@ class ProfileSystem(commands.Cog):
         )
         await ctx.send(embed=embed)
 
-    # -----------------------------------------
+    # -----------------------------
     # BACKWARD COMPATIBILITY
-    # -----------------------------------------
+    # -----------------------------
     @commands.command()
     async def backgrounds(self, ctx):
         await ctx.send("🔄 Use `!banners` instead.")
@@ -187,7 +184,7 @@ class ProfileSystem(commands.Cog):
         await ctx.send("🔄 Use `!setbanner` instead.")
 
     @commands.command()
-    async def userbackgrounds(self, ctx, member: discord.Member = None):
+    async def userbackgrounds(self, ctx, member: Optional[discord.Member] = None):
         await ctx.send("🔄 Use `!userbanners` instead.")
 
     @commands.command()
@@ -195,7 +192,7 @@ class ProfileSystem(commands.Cog):
         await ctx.send("🔄 Use `!givebanner` instead.")
 
     @commands.command()
-    async def giveallbackgrounds(self, ctx, member: discord.Member = None):
+    async def giveallbackgrounds(self, ctx, member: Optional[discord.Member] = None):
         await ctx.send("🔄 Use `!giveallbanners` instead.")
 
     @commands.command()
@@ -205,15 +202,9 @@ class ProfileSystem(commands.Cog):
 
 
 # -----------------------------
-# COG SETUP (FINAL)
+# COG SETUP
 # -----------------------------
-async def setup(bot):
-    # initialize storage the correct way
-    storage = getattr(bot, "storage", None)
-
+async def setup(bot, storage=None):
     if storage is None:
-        print("⚠️ WARNING: ProfileSystem loaded but no storage found!")
-    else:
-        print("✅ ProfileSystem attached to storage system")
-
+        storage = getattr(bot, "storage", None)
     await bot.add_cog(ProfileSystem(bot, storage))
