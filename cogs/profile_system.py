@@ -57,7 +57,9 @@ class ProfileSystem(commands.Cog):
             return
 
         # Fetch or create profile
-        profile_data = self.storage.get_user_profile(target.id, ctx.guild.id) or {}
+        profile_data = self.storage.get_user_profile(target.id, ctx.guild.id)
+        if not profile_data:
+            profile_data = {}
 
         # XP & level
         user_levels = self.storage.user_levels.get(str(ctx.guild.id), {}).get(str(target.id), {})
@@ -209,5 +211,6 @@ async def setup(bot, storage=None):
     if storage is None:
         storage = getattr(bot, "storage", None)
     await bot.add_cog(ProfileSystem(bot, storage))
+
 
 
