@@ -2,22 +2,35 @@
 
 import discord
 from discord.ext import commands
+import logging
 import asyncio
-from datetime import datetime
 import sys
+
+# ---------------------------
+# Logging setup
+# ---------------------------
+logger = logging.getLogger("MerlinBot")
+logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter("[%(asctime)s] [%(levelname)s] %(message)s")
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(formatter)
+logger.addHandler(console_handler)
+
+# Reduce noisy discord logs
+logging.getLogger("discord").setLevel(logging.WARNING)
 
 # -----------------------------
 # IMPORT CONFIG
 # -----------------------------
 try:
     import config
-    PREFIX = getattr(config, 'PREFIX', '!')
-    OWNER_IDS = set(getattr(config, 'OWNER_IDS', []))
-    COGS = getattr(config, 'COGS', [])
-    BOT_TOKEN = getattr(config, 'BOT_TOKEN', None)
-    print("✅ Config imported successfully!")
+    PREFIX = getattr(config, "PREFIX", "!")
+    OWNER_IDS = set(getattr(config, "OWNER_IDS", []))
+    COGS = getattr(config, "COGS", [])
+    BOT_TOKEN = getattr(config, "BOT_TOKEN", None)
+    logger.info("✅ Config imported successfully!")
 except ImportError as e:
-    print(f"❌ Failed to import config: {e}")
+    logger.error(f"❌ Failed to import config: {e}")
     sys.exit(1)
 
 # -----------------------------
@@ -26,10 +39,10 @@ except ImportError as e:
 try:
     from storage import DataStorage
     STORAGE = DataStorage()
-    print("✅ Storage instance created")
+    logger.info("✅ Storage instance created")
 except ImportError as e:
     STORAGE = None
-    print(f"❌ Storage module not found: {e}")
+    logger.error(f"❌ Storage module not found: {e}")
     sys.exit(1)
 
 # -----------------------------
@@ -37,10 +50,11 @@ except ImportError as e:
 # -----------------------------
 try:
     from discordLevelingSystem import DiscordLevelingSystem, errors as leveling_errors
+    LEVEL_SYSTEM = DiscordLevelingSystem(rate=1, per=60.0)
 except ImportError as e:
-    print(f"❌ Failed to import leveling system: {e}")
+    logger.error(f"❌ Failed to import leveling system: {e}")
+    LEVEL_SYSTEM = None
     leveling_errors = None
-    DiscordLevelingSystem = None
 
 # -----------------------------
 # MERLIN BOT CLASS
@@ -53,10 +67,9 @@ class MerlinBot(commands.Bot):
             help_command=None,
             owner_ids=OWNER_IDS
         )
-
         self.storage = STORAGE
+        self.levelsystem = LEVEL_SYSTEM
         self.user_data = {}
-        self.levelsystem = DiscordLevelingSystem(rate=1, per=60.0) if DiscordLevelingSystem else None
 
     async def setup_hook(self):
         # -----------------------------
@@ -66,39 +79,41 @@ class MerlinBot(commands.Bot):
             loop = asyncio.get_running_loop()
             try:
                 await loop.run_in_executor(None, self.levelsystem.connect_to_database_file, "./leveling.db")
-                print("✅ Leveling system database connected")
+                logger.info("✅ Leveling system database connected")
             except leveling_errors.ConnectionFailure:
-                print("❌ Failed to connect to leveling database")
+                logger.error("❌ Failed to connect to leveling database")
+            except Exception as e:
+                logger.error(f"❌ Leveling DB error: {e}")
 
         # -----------------------------
-        # Load storage
+        # Load storage data
         # -----------------------------
         if self.storage:
             try:
                 await self.storage.load_data_async()
-                print("✅ Storage data loaded successfully")
+                logger.info("✅ Storage data loaded successfully")
             except Exception as e:
-                print(f"❌ Failed to load storage data: {e}")
+                logger.error(f"❌ Failed to load storage data: {e}")
 
         # -----------------------------
         # Load cogs
         # -----------------------------
-        print("🚀 Loading cogs...")
+        logger.info("🚀 Loading cogs...")
         loaded = 0
         for cog in COGS:
             try:
+                # Pass storage to all cogs that accept it
                 await self.load_extension(cog)
-                print(f"   ✅ {cog}")
+                logger.info(f"   ✅ {cog}")
                 loaded += 1
             except Exception as e:
-                print(f"   ❌ {cog}: {e}")
-        print(f"📊 Loaded {loaded}/{len(COGS)} cogs")
+                logger.error(f"   ❌ {cog}: {e}")
+        logger.info(f"📊 Loaded {loaded}/{len(COGS)} cogs")
 
     async def on_ready(self):
-        print(f"\n🎉 {self.user} is online!")
-        print(f"📊 Connected to {len(self.guilds)} server(s)")
-        print(f"🏓 Latency: {round(self.latency * 1000)}ms")
-        print("🔧 Bot fully operational\n")
+        logger.info(f"🎉 {self.user} is online!")
+        logger.info(f"📊 Connected to {len(self.guilds)} server(s)")
+        logger.info(f"🏓 Latency: {round(self.latency * 1000)}ms")
 
         activity = discord.Activity(
             type=discord.ActivityType.watching,
@@ -120,7 +135,13 @@ class MerlinBot(commands.Bot):
         # Award leveling XP
         # -----------------------------
         if self.levelsystem:
-            await self.levelsystem.award_xp(amount=[15, 25], message=message)
+            try:
+                await self.levelsystem.award_xp(amount=[15, 25], message=message)
+            except leveling_errors.TableNotFound:
+                await self.levelsystem.create_database_file()
+                await self.levelsystem.award_xp(amount=[15, 25], message=message)
+            except Exception as e:
+                logger.error(f"❌ Failed to award XP: {e}")
 
         # -----------------------------
         # Track messages
@@ -128,14 +149,12 @@ class MerlinBot(commands.Bot):
         if message.guild:
             user_id = message.author.id
             if user_id not in self.user_data:
-                joined_date = message.author.joined_at.isoformat() if message.author.joined_at else datetime.now().isoformat()
+                joined_date = message.author.joined_at.isoformat() if message.author.joined_at else "Unknown"
                 self.user_data[user_id] = {
                     "username": str(message.author),
                     "joined_at": joined_date,
                     "messages": 0
                 }
-                print(f"📝 Created new user record for {message.author}")
-
             self.user_data[user_id]["messages"] += 1
 
         await self.process_commands(message)
@@ -144,23 +163,28 @@ class MerlinBot(commands.Bot):
 # MAIN FUNCTION
 # -----------------------------
 async def main():
-    print("="*50)
-    print("🤖 Merlin Discord Bot - Starting Up")
-    print("="*50)
+    logger.info("="*50)
+    logger.info("🤖 Merlin Discord Bot - Starting Up")
+    logger.info("="*50)
 
     if not BOT_TOKEN or BOT_TOKEN == "YOUR_ACTUAL_BOT_TOKEN_HERE":
-        print("❌ Bot token not configured")
+        logger.error("❌ Bot token not configured")
         return
 
     bot = MerlinBot()
+
+    # Inject storage and leveling system into cogs
+    bot.storage = STORAGE
+    bot.levelsystem = LEVEL_SYSTEM
+
     try:
         await bot.start(BOT_TOKEN)
     except discord.LoginFailure:
-        print("❌ INVALID BOT TOKEN")
+        logger.error("❌ INVALID BOT TOKEN")
     except KeyboardInterrupt:
-        print("\n🛑 Bot stopped by user")
+        logger.error("\n🛑 Bot stopped by user")
     except Exception as e:
-        print(f"❌ Unexpected error: {e}")
+        logger.error(f"❌ Unexpected error: {e}")
 
 # -----------------------------
 # ENTRY POINT
