@@ -205,13 +205,15 @@ class ProfileSystem(commands.Cog):
 
 
 # -----------------------------
-# COG SETUP
+# COG SETUP (FINAL)
 # -----------------------------
-async def setup(bot, storage=None):
+async def setup(bot):
+    # initialize storage the correct way
+    storage = getattr(bot, "storage", None)
+
     if storage is None:
-        storage = getattr(bot, "storage", None)
+        print("⚠️ WARNING: ProfileSystem loaded but no storage found!")
+    else:
+        print("✅ ProfileSystem attached to storage system")
+
     await bot.add_cog(ProfileSystem(bot, storage))
-
-
-
-
